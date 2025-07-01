@@ -247,11 +247,46 @@
                     drainsList.innerHTML = '<li class="text-gray-500 dark:text-gray-400">No drains added yet.</li>';
                 } else {
                     sortedDrains.forEach(drain => {
+                        // --- Low Output Indicator Logic ---
+                        const today = new Date();
+                        today.setHours(0, 0, 0, 0);
+
+                        const yesterday = new Date(today);
+                        yesterday.setDate(today.getDate() - 1);
+
+                        const dayBefore = new Date(today);
+                        dayBefore.setDate(today.getDate() - 2);
+
+                        const drainLogs = appData.logs.filter(log => log.drainId === drain.id);
+
+                        const yesterdayLogs = drainLogs.filter(log => {
+                            const logDate = new Date(log.date);
+                            return logDate >= yesterday && logDate < today;
+                        });
+                        const yesterdayTotal = yesterdayLogs.reduce((sum, log) => sum + parseFloat(log.amount), 0);
+
+                        const dayBeforeLogs = drainLogs.filter(log => {
+                            const logDate = new Date(log.date);
+                            return logDate >= dayBefore && logDate < yesterday;
+                        });
+                        const dayBeforeTotal = dayBeforeLogs.reduce((sum, log) => sum + parseFloat(log.amount), 0);
+
+                        let indicatorHTML = '';
+                        // Condition: total output was < 15cc for both of the last two full days.
+                        // We also check that there was at least one log on each day to avoid false positives for new drains.
+                        if (yesterdayLogs.length > 0 && dayBeforeLogs.length > 0 && yesterdayTotal <= 15 && dayBeforeTotal <= 15) {
+                            indicatorHTML = `<span class="ml-2 h-3 w-3 bg-green-500 rounded-full animate-pulse" title="Output has been less than 15cc for the last 2 full days."></span>`;
+                        }
+                        
+                        // --- Render List Item ---
                         const listItem = document.createElement('li');
                         listItem.className = 'flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg';
-                        listItem.innerHTML = `<span class="font-medium">${drain.name}</span><button data-id="${drain.id}" class="delete-drain-btn text-red-500 hover:text-red-700 font-semibold">Delete</button>`;
+                        listItem.innerHTML = `
+                            <span class="font-medium flex items-center">${drain.name}${indicatorHTML}</span>
+                            <button data-id="${drain.id}" class="delete-drain-btn text-red-500 hover:text-red-700 font-semibold">Delete</button>`;
                         drainsList.appendChild(listItem);
                         
+                        // --- Render Select Options ---
                         const option = document.createElement('option');
                         option.value = drain.id;
                         option.textContent = drain.name;
