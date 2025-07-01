@@ -251,8 +251,6 @@
             // Add the Google accounts that are allowed to sign in here.
             const allowedGoogleEmails = [
                 "jonny5v@gmail.com",
-                "user2@example.com",
-                // "another.user@gmail.com"
             ];
 
             // --- Firebase and App State ---
@@ -273,8 +271,8 @@
                         storageBucket: "drainage-app.firebasestorage.app",
                         messagingSenderId: "721088755795",
                         appId: "1:721088755795:web:06a8c8a9a2c1e717aa6ea6"
-                    };
-
+                    }; 
+                    
                     // Check if firebaseConfig is empty, which means it wasn't replaced.
                     if (!firebaseConfig.apiKey) {
                         document.body.innerHTML = `<div class="p-8 text-center text-red-500 bg-red-100">
@@ -341,21 +339,39 @@
             modalCloseBtn.onclick = () => modal.style.display = 'none';
             window.onclick = (event) => { if (event.target == modal) modal.style.display = "none"; };
 
+            const getLocalISOString = (date = new Date()) => {
+                const year = date.getFullYear();
+                const month = (date.getMonth() + 1).toString().padStart(2, '0');
+                const day = date.getDate().toString().padStart(2, '0');
+                const hours = date.getHours().toString().padStart(2, '0');
+                const minutes = date.getMinutes().toString().padStart(2, '0');
+                return `${year}-${month}-${day}T${hours}:${minutes}`;
+            };
+
             // --- Render Functions ---
             const renderDrains = () => {
                 drainsList.innerHTML = '';
                 drainSelect.innerHTML = '<option value="" disabled selected>Select a drain</option>';
-                if (appData.drains.length === 0) drainsList.innerHTML = '<li class="text-gray-500 dark:text-gray-400">No drains added yet.</li>';
-                appData.drains.forEach(drain => {
-                    const listItem = document.createElement('li');
-                    listItem.className = 'flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg';
-                    listItem.innerHTML = `<span class="font-medium">${drain.name}</span><button data-id="${drain.id}" class="delete-drain-btn text-red-500 hover:text-red-700 font-semibold">Delete</button>`;
-                    drainsList.appendChild(listItem);
-                    const option = document.createElement('option');
-                    option.value = drain.id;
-                    option.textContent = drain.name;
-                    drainSelect.appendChild(option);
-                });
+                
+                const sortedDrains = [...appData.drains].sort((a, b) => a.name.localeCompare(b.name));
+
+                if (sortedDrains.length === 0) {
+                    drainsList.innerHTML = '<li class="text-gray-500 dark:text-gray-400">No drains added yet.</li>';
+                } else {
+                    sortedDrains.forEach(drain => {
+                        // Add to list view
+                        const listItem = document.createElement('li');
+                        listItem.className = 'flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg';
+                        listItem.innerHTML = `<span class="font-medium">${drain.name}</span><button data-id="${drain.id}" class="delete-drain-btn text-red-500 hover:text-red-700 font-semibold">Delete</button>`;
+                        drainsList.appendChild(listItem);
+                        
+                        // Add to select dropdown
+                        const option = document.createElement('option');
+                        option.value = drain.id;
+                        option.textContent = drain.name;
+                        drainSelect.appendChild(option);
+                    });
+                }
             };
 
             const renderLogs = () => {
@@ -539,7 +555,7 @@
                 };
                 if (logData.drainId && logData.amount >= 0 && logData.date && await dbAction('add', 'logs', logData)) {
                     logOutputForm.reset();
-                    outputDateInput.value = new Date().toISOString().slice(0, 16);
+                    outputDateInput.value = getLocalISOString();
                     showMessage('Drainage output logged successfully.');
                 } else if (!logData.drainId || !logData.amount || !logData.date) {
                     showMessage('Please fill in all required fields.');
@@ -557,7 +573,7 @@
 
             // --- Initial Load ---
             initializeFirebase();
-            outputDateInput.value = new Date().toISOString().slice(0, 16);
+            outputDateInput.value = getLocalISOString();
         });
     </script>
 </body>
