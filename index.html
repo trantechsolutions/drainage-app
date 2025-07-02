@@ -6,8 +6,8 @@
     <title>Drain Tracker PWA</title>
     <meta name="description" content="A PWA for tracking medical drain output with local storage.">
     <meta name="theme-color" content="#317EFB"/>
-    <link rel="manifest" href="./manifest.json">
-    <link rel="apple-touch-icon" href="./images/icon-192x192.png">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="images/icon-192x192.png">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -272,7 +272,9 @@
                         const dayBeforeTotal = dayBeforeLogs.reduce((sum, log) => sum + parseFloat(log.amount), 0);
 
                         let indicatorHTML = '';
-                        if (yesterdayLogs.length > 0 && dayBeforeLogs.length > 0 && yesterdayTotal < 15 && dayBeforeTotal < 15) {
+                        // Condition: total output was < 15cc for both of the last two full days.
+                        // We also check that there was at least one log on each day to avoid false positives for new drains.
+                        if (yesterdayLogs.length > 0 && dayBeforeLogs.length > 0 && yesterdayTotal <= 15 && dayBeforeTotal <= 15) {
                             indicatorHTML = `<span class="ml-2 h-3 w-3 bg-green-500 rounded-full animate-pulse" title="Output has been less than 15cc for the last 2 full days."></span>`;
                         }
                         
@@ -297,4 +299,243 @@
             const renderLogs = () => {
                 logHistoryBody.innerHTML = '';
                 if (appData.logs.length === 0) {
-                    logHistoryBody.innerHTML = '<tr><td colspan="5" class="text-center py
+                    logHistoryBody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-gray-500 dark:text-gray-400">No logs recorded yet.</td></tr>';
+                    return;
+                }
+                const sortedLogs = [...appData.logs].sort((a, b) => new Date(b.date) - new Date(a.date));
+                sortedLogs.forEach(log => {
+                    const drain = appData.drains.find(d => d.id === log.drainId);
+                    const drainName = drain ? drain.name : 'Unknown Drain';
+                    const formattedDate = new Date(log.date).toLocaleString();
+                    const row = document.createElement('tr');
+                    row.className = "bg-white dark:bg-gray-800";
+                    row.innerHTML = `
+                        <td class="px-6 py-4 whitespace-nowrap">${drainName}</td>
+                        <td class="px-6 py-4 whitespace-nowrap">${formattedDate}</td>
+                        <td class="px-6 py-4 whitespace-nowrap">${parseFloat(log.amount).toFixed(1)} cc</td>
+                        <td class="px-6 py-4 whitespace-normal">${log.notes || ''}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <button data-id="${log.id}" class="edit-log-btn text-blue-500 hover:text-blue-700 font-semibold mr-4">Edit</button>
+                            <button data-id="${log.id}" class="delete-log-btn text-red-500 hover:text-red-700 font-semibold">Delete</button>
+                        </td>`;
+                    logHistoryBody.appendChild(row);
+                });
+            };
+
+            const renderSummaryTable = () => {
+                summaryTableHead.innerHTML = '';
+                summaryTableBody.innerHTML = '';
+                
+                const sortedDrains = [...appData.drains].sort((a, b) => a.name.localeCompare(b.name));
+
+                if (sortedDrains.length === 0) {
+                    summaryTableHead.innerHTML = '<tr><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Date</th></tr>';
+                    summaryTableBody.innerHTML = `<tr><td colspan="1" class="text-center py-4 text-gray-500 dark:text-gray-400">Add a drain to see the summary.</td></tr>`;
+                    return;
+                }
+                const headerRow = document.createElement('tr');
+                let headerHTML = '<th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Date</th>';
+                sortedDrains.forEach(drain => { headerHTML += `<th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">${drain.name}</th>`; });
+                headerHTML += '<th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider font-bold">Daily Total</th>';
+                headerRow.innerHTML = headerHTML;
+                summaryTableHead.appendChild(headerRow);
+
+                if (appData.logs.length === 0) {
+                    summaryTableBody.innerHTML = `<tr><td colspan="${sortedDrains.length + 2}" class="text-center py-4 text-gray-500 dark:text-gray-400">No logs recorded yet.</td></tr>`;
+                    return;
+                }
+                const dailySummaries = appData.logs.reduce((acc, log) => {
+                    const date = new Date(log.date);
+                    const dateKey = new Date(date.getFullYear(), date.getMonth(), date.getDate()).toISOString().split('T')[0];
+                    if (!acc[dateKey]) acc[dateKey] = {};
+                    acc[dateKey][log.drainId] = (acc[dateKey][log.drainId] || 0) + parseFloat(log.amount);
+                    return acc;
+                }, {});
+                Object.keys(dailySummaries).sort((a, b) => new Date(b) - new Date(a)).forEach(date => {
+                    const row = document.createElement('tr');
+                    row.className = "bg-white dark:bg-gray-800";
+                    let dailyTotal = 0;
+                    let rowHTML = `<td class="px-6 py-4 whitespace-nowrap font-medium">${date}</td>`;
+                    sortedDrains.forEach(drain => {
+                        const amount = dailySummaries[date][drain.id] || 0;
+                        rowHTML += `<td class="px-6 py-4 whitespace-nowrap">${amount.toFixed(1)} cc</td>`;
+                        dailyTotal += amount;
+                    });
+                    rowHTML += `<td class="px-6 py-4 whitespace-nowrap font-bold">${dailyTotal.toFixed(1)} cc</td>`;
+                    row.innerHTML = rowHTML;
+                    summaryTableBody.appendChild(row);
+                });
+            };
+            
+            const renderAll = () => {
+                renderDrains();
+                renderLogs();
+                renderSummaryTable();
+            };
+
+            // --- Event Handlers ---
+            darkModeToggle.addEventListener('click', () => {
+                const isDark = document.documentElement.classList.toggle('dark');
+                localStorage.setItem('theme', isDark ? 'dark' : 'light');
+            });
+
+            addDrainForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const drainName = drainNameInput.value.trim();
+                if (drainName) {
+                    appData.drains.push({ id: generateId(), name: drainName });
+                    saveData();
+                    renderAll();
+                    drainNameInput.value = '';
+                    showMessage(`Drain "${drainName}" added successfully!`);
+                }
+            });
+
+            drainsList.addEventListener('click', (e) => {
+                if (e.target.classList.contains('delete-drain-btn')) {
+                    const drainId = e.target.getAttribute('data-id');
+                    const drainToDelete = appData.drains.find(d => d.id === drainId);
+                    if (confirm(`Delete drain "${drainToDelete.name}" and all its logs?`)) {
+                        appData.drains = appData.drains.filter(d => d.id !== drainId);
+                        appData.logs = appData.logs.filter(log => log.drainId !== drainId);
+                        saveData();
+                        renderAll();
+                        showMessage('Drain and logs deleted.');
+                    }
+                }
+            });
+
+            logOutputForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const logData = {
+                    id: generateId(),
+                    drainId: drainSelect.value,
+                    amount: parseFloat(outputAmountInput.value),
+                    date: outputDateInput.value,
+                    notes: outputNotesInput.value.trim()
+                };
+                if (logData.drainId && !isNaN(logData.amount) && logData.date) {
+                    appData.logs.push(logData);
+                    saveData();
+                    renderAll();
+                    logOutputForm.reset();
+                    outputDateInput.value = getLocalISOString();
+                    showMessage('Drainage output logged successfully.');
+                } else {
+                    showMessage('Please fill in all required fields correctly.');
+                }
+            });
+            
+            logHistoryBody.addEventListener('click', (e) => {
+                if(e.target.classList.contains('delete-log-btn')) {
+                    const logId = e.target.getAttribute('data-id');
+                    if (confirm('Delete this log entry?')) {
+                        appData.logs = appData.logs.filter(log => log.id !== logId);
+                        saveData();
+                        renderAll();
+                        showMessage('Log entry deleted.');
+                    }
+                }
+                if(e.target.classList.contains('edit-log-btn')) {
+                    const logId = e.target.getAttribute('data-id');
+                    const logToEdit = appData.logs.find(log => log.id === logId);
+                    if (logToEdit) {
+                        editLogIdInput.value = logId;
+                        editDrainSelect.value = logToEdit.drainId;
+                        editOutputAmount.value = logToEdit.amount;
+                        editOutputDate.value = logToEdit.date;
+                        editOutputNotes.value = logToEdit.notes || '';
+                        editLogModal.style.display = 'flex';
+                    }
+                }
+            });
+
+            editLogForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const logId = editLogIdInput.value;
+                const logIndex = appData.logs.findIndex(log => log.id === logId);
+                if (logIndex === -1) {
+                    showMessage("Error: Could not find log to update.");
+                    return;
+                }
+
+                const updatedData = {
+                    id: logId,
+                    drainId: editDrainSelect.value,
+                    amount: parseFloat(editOutputAmount.value),
+                    date: editOutputDate.value,
+                    notes: editOutputNotes.value.trim()
+                };
+
+                if (updatedData.drainId && !isNaN(updatedData.amount) && updatedData.date) {
+                    appData.logs[logIndex] = updatedData;
+                    saveData();
+                    renderAll();
+                    editLogModal.style.display = 'none';
+                    showMessage('Log entry updated successfully.');
+                } else {
+                    showMessage('Please fill in all required fields correctly to update.');
+                }
+            });
+
+            editModalCancelBtn.addEventListener('click', () => {
+                editLogModal.style.display = 'none';
+            });
+            
+            exportBtn.addEventListener('click', () => {
+                if (appData.drains.length === 0 && appData.logs.length === 0) {
+                    showMessage('No data to export.');
+                    return;
+                }
+                try {
+                    const dataStr = JSON.stringify(appData, null, 2);
+                    const dataBlob = new Blob([dataStr], {type: 'application/json'});
+                    const url = URL.createObjectURL(dataBlob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = `drain-tracker-data-${new Date().toISOString().split('T')[0]}.json`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    URL.revokeObjectURL(url);
+                    showMessage('Data exported successfully.');
+                } catch (error) {
+                    showMessage(`Error exporting data: ${error.message}`);
+                }
+            });
+
+            importInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    try {
+                        const importedData = JSON.parse(event.target.result);
+                        if (importedData && Array.isArray(importedData.drains) && Array.isArray(importedData.logs)) {
+                            if (confirm('Are you sure you want to import this data? This will overwrite all current data.')) {
+                                appData = importedData;
+                                saveData();
+                                renderAll();
+                                showMessage('Data imported successfully!');
+                            }
+                        } else {
+                            throw new Error('Invalid file format.');
+                        }
+                    } catch (error) {
+                        showMessage(`Error importing file: ${error.message}`);
+                    } finally {
+                        importInput.value = '';
+                    }
+                };
+                reader.readAsText(file);
+            });
+
+            // --- Initial Load ---
+            loadData();
+            renderAll();
+            outputDateInput.value = getLocalISOString();
+        });
+    </script>
+</body>
+</html>
