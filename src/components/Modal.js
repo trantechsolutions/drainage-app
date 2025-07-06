@@ -7,7 +7,7 @@ const Modal = ({ isOpen, onClose, title, children }) => {
             onClick={onClose}
         >
             <div 
-                className="modal-content bg-white dark:bg-gray-800 dark:border-gray-600 rounded-lg shadow-xl"
+                className="modal-content bg-white dark:bg-gray-800 dark:border-gray-600 rounded-lg shadow-xl p-4"
                 onClick={e => e.stopPropagation()}
             >
                 <h2 className="text-2xl font-semibold mb-4 border-b dark:border-gray-700 pb-2">{title}</h2>
