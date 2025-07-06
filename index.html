@@ -6,8 +6,8 @@
     <title>Drain Tracker PWA</title>
     <meta name="description" content="A PWA for tracking medical drain output with local storage.">
     <meta name="theme-color" content="#317EFB"/>
-    <link rel="manifest" href="manifest.json">
-    <link rel="apple-touch-icon" href="images/icon-192x192.png">
+    <link rel="manifest" href="./manifest.json">
+    <link rel="apple-touch-icon" href="./images/icon-192x192.png">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -37,97 +37,160 @@
             max-width: 500px;
             border-radius: 0.5rem;
         }
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            #printable-area, #printable-area * {
+                visibility: visible;
+            }
+            #printable-area {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+            }
+            button, .no-print {
+                display: none;
+            }
+        }
     </style>
     <script>
+        // Function to apply the theme
+        function applyTheme(theme) {
+            if (theme === 'dark') {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        }
         // Set theme on initial load to prevent Flash of Unstyled Content (FOUC)
-        if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-            document.documentElement.classList.add('dark')
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme) {
+            applyTheme(savedTheme);
         } else {
-            document.documentElement.classList.remove('dark')
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            applyTheme(prefersDark ? 'dark' : 'light');
         }
     </script>
 </head>
 <body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200 transition-colors duration-300">
 
-    <div class="container mx-auto p-4 md:p-6 max-w-4xl">
-        <header class="relative text-center mb-8">
+    <div class="container mx-auto p-4 md:p-6 max-w-4xl pb-24">
+        <header class="relative text-center mb-8 no-print">
             <h1 class="text-4xl font-bold text-blue-600 dark:text-blue-500">Drain Tracker</h1>
             <p class="text-gray-600 dark:text-gray-400 mt-2">A simple PWA to monitor drain output.</p>
             
             <div class="absolute top-0 right-0">
                 <button id="dark-mode-toggle" class="p-2 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-gray-900">
-                    <svg id="moon-icon" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 hidden dark:block" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
-                    <svg id="sun-icon" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 block dark:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M12 5a7 7 0 100 14 7 7 0 000-14z" /></svg>
+                    <svg id="moon-icon" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
+                    <svg id="sun-icon" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M12 5a7 7 0 100 14 7 7 0 000-14z" /></svg>
                 </button>
             </div>
         </header>
 
-        <main class="space-y-8">
-            <section id="drain-management" class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
-                <h2 class="text-2xl font-semibold mb-4 border-b dark:border-gray-700 pb-2">Manage Drains</h2>
-                <form id="add-drain-form" class="flex flex-col sm:flex-row gap-4">
-                    <input type="text" id="drain-name-input" placeholder="Enter new drain name" class="flex-grow p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700" required>
-                    <button type="submit" class="bg-blue-500 text-white font-semibold py-3 px-6 rounded-lg hover:bg-blue-600 transition duration-300 shadow">Add Drain</button>
-                </form>
-                <div class="mt-6">
-                    <h3 class="text-xl font-semibold mb-2">Your Drains:</h3>
-                    <ul id="drains-list" class="space-y-2"></ul>
-                </div>
-            </section>
-
-            <section id="log-drainage" class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
-                <h2 class="text-2xl font-semibold mb-4 border-b dark:border-gray-700 pb-2">Log Drainage Output</h2>
-                <form id="log-output-form" class="space-y-4">
-                    <div>
-                        <label for="drain-select" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Select Drain:</label>
-                        <select id="drain-select" class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700" required></select>
+        <main>
+            <!-- Overview Page -->
+            <div id="overview-page" class="page space-y-8">
+                <section id="rolling-summary-section" class="mb-8 p-4 bg-blue-50 dark:bg-gray-800 rounded-lg shadow-inner no-print">
+                    <h2 class="text-xl font-semibold text-center mb-4 text-blue-800 dark:text-blue-300">Rolling Totals</h2>
+                    <ul id="rolling-summary-list" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                        <!-- Rolling totals will be inserted here -->
+                    </ul>
+                </section>
+                <section id="printable-summary-section" class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-2xl font-semibold">Time-Grouped Summary</h2>
+                        <button id="print-btn" class="bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-gray-700 transition duration-300 shadow no-print">Print</button>
                     </div>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                            <label for="output-amount" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Output (cc):</label>
-                            <input type="number" id="output-amount" min="0" step="1" class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700" required>
-                        </div>
-                        <div>
-                            <label for="output-date" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Date & Time:</label>
-                            <input type="datetime-local" id="output-date" class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700" required>
-                        </div>
+                    <div id="printable-area" class="overflow-x-auto">
+                        <table class="min-w-full">
+                            <thead id="printable-summary-head" class="bg-gray-50 dark:bg-gray-700"></thead>
+                            <tbody id="printable-summary-body" class="divide-y divide-gray-200 dark:divide-gray-700"></tbody>
+                        </table>
                     </div>
-                    <div>
-                         <label for="output-notes" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Notes (optional):</label>
-                         <textarea id="output-notes" rows="3" class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700" placeholder="e.g., color, consistency"></textarea>
+                </section>
+            </div>
+
+            <!-- Log Page -->
+            <div id="log-page" class="page hidden space-y-8">
+                <section id="data-display" class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md no-print">
+                    <h2 class="text-2xl font-semibold mb-4 border-b dark:border-gray-700 pb-2">Detailed Log History</h2>
+                    <div class="overflow-x-auto"><table class="min-w-full"><thead class="bg-gray-50 dark:bg-gray-700"><tr><th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Drain</th><th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Date & Time</th><th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Output (cc)</th><th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Notes</th><th scope="col" class="relative px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Actions</th></tr></thead><tbody id="log-history-body" class="divide-y divide-gray-200 dark:divide-gray-700"></tbody></table></div>
+                </section>
+            </div>
+
+            <!-- Settings Page -->
+            <div id="settings-page" class="page hidden space-y-8">
+                <section id="drain-management" class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md no-print">
+                    <h2 class="text-2xl font-semibold mb-4 border-b dark:border-gray-700 pb-2">Manage Drains</h2>
+                    <form id="add-drain-form" class="flex flex-col sm:flex-row gap-4">
+                        <input type="text" id="drain-name-input" placeholder="Enter new drain name" class="flex-grow p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700" required>
+                        <button type="submit" class="bg-blue-500 text-white font-semibold py-3 px-6 rounded-lg hover:bg-blue-600 transition duration-300 shadow">Add Drain</button>
+                    </form>
+                    <div class="mt-6">
+                        <h3 class="text-xl font-semibold mb-2">Your Drains:</h3>
+                        <ul id="drains-list" class="space-y-2"></ul>
                     </div>
-                    <button type="submit" class="w-full bg-green-500 text-white font-semibold py-3 px-6 rounded-lg hover:bg-green-600 transition duration-300 shadow">Log Output</button>
-                </form>
-            </section>
-
-            <section id="summary-display" class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
-                <h2 class="text-2xl font-semibold mb-4 border-b dark:border-gray-700 pb-2">Daily Summary</h2>
-                <div class="overflow-x-auto"><table class="min-w-full"><thead id="summary-table-head" class="bg-gray-50 dark:bg-gray-700"></thead><tbody id="summary-table-body" class="divide-y divide-gray-200 dark:divide-gray-700"></tbody></table></div>
-            </section>
-
-            <section id="data-display" class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
-                <h2 class="text-2xl font-semibold mb-4 border-b dark:border-gray-700 pb-2">Detailed Log History</h2>
-                <div class="overflow-x-auto"><table class="min-w-full"><thead class="bg-gray-50 dark:bg-gray-700"><tr><th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Drain</th><th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Date & Time</th><th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Output (cc)</th><th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Notes</th><th scope="col" class="relative px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Actions</th></tr></thead><tbody id="log-history-body" class="divide-y divide-gray-200 dark:divide-gray-700"></tbody></table></div>
-            </section>
-
-            <section id="data-management" class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
-                <h2 class="text-2xl font-semibold mb-4 border-b dark:border-gray-700 pb-2">Data Management</h2>
-                <div class="flex flex-col sm:flex-row gap-4">
-                    <button id="export-data-btn" class="flex-1 bg-purple-500 text-white font-semibold py-3 px-6 rounded-lg hover:bg-purple-600 transition duration-300 shadow">Export Data (JSON)</button>
-                    <label for="import-data-input" class="flex-1 bg-yellow-500 text-white font-semibold py-3 px-6 rounded-lg hover:bg-yellow-600 transition duration-300 shadow text-center cursor-pointer">
-                        Import Data (JSON)
-                        <input type="file" id="import-data-input" class="hidden" accept=".json">
-                    </label>
-                </div>
-            </section>
+                </section>
+                <section id="app-settings" class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md no-print">
+                     <h2 class="text-2xl font-semibold mb-4 border-b dark:border-gray-700 pb-2">App Settings</h2>
+                     <div>
+                        <label for="threshold-input" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Low Output Threshold (cc)</label>
+                        <input type="number" id="threshold-input" min="0" class="mt-1 block w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700" placeholder="e.g., 15">
+                        <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">Set the daily output amount that is considered low. Used for the green dot indicator.</p>
+                     </div>
+                </section>
+                <section id="data-management" class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md no-print">
+                    <h2 class="text-2xl font-semibold mb-4 border-b dark:border-gray-700 pb-2">Data Management</h2>
+                    <div class="flex flex-col sm:flex-row gap-4">
+                        <button id="export-data-btn" class="flex-1 bg-purple-500 text-white font-semibold py-3 px-6 rounded-lg hover:bg-purple-600 transition duration-300 shadow">Export Data (JSON)</button>
+                        <label for="import-data-input" class="flex-1 bg-yellow-500 text-white font-semibold py-3 px-6 rounded-lg hover:bg-yellow-600 transition duration-300 shadow text-center cursor-pointer">
+                            Import Data (JSON)
+                            <input type="file" id="import-data-input" class="hidden" accept=".json">
+                        </label>
+                    </div>
+                </section>
+            </div>
         </main>
 
-        <footer class="text-center mt-8 text-gray-500 dark:text-gray-400 text-sm">
+        <footer class="text-center mt-8 text-gray-500 dark:text-gray-400 text-sm no-print">
             <p>Drain Tracker PWA &copy; 2024</p>
         </footer>
     </div>
     
+    <!-- Modals -->
     <div id="message-modal" class="modal"><div class="modal-content text-center bg-white dark:bg-gray-800 dark:border-gray-600"><p id="modal-message" class="text-lg mb-4"></p><button id="modal-close-btn" class="bg-blue-500 text-white font-semibold py-2 px-8 rounded-lg hover:bg-blue-600 transition duration-300">OK</button></div></div>
+
+    <div id="log-output-modal" class="modal">
+        <div class="modal-content bg-white dark:bg-gray-800 dark:border-gray-600">
+            <h2 class="text-2xl font-semibold mb-4 border-b dark:border-gray-700 pb-2">Log Drainage Output</h2>
+            <form id="log-output-form" class="space-y-4">
+                <div>
+                    <label for="drain-select" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Select Drain:</label>
+                    <select id="drain-select" class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700" required></select>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label for="output-amount" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Output (cc):</label>
+                        <input type="number" id="output-amount" min="0" step="1" class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700" required>
+                    </div>
+                    <div>
+                        <label for="output-date" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Date & Time:</label>
+                        <input type="datetime-local" id="output-date" class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700" required>
+                    </div>
+                </div>
+                <div>
+                     <label for="output-notes" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Notes (optional):</label>
+                     <textarea id="output-notes" rows="3" class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700" placeholder="e.g., color, consistency"></textarea>
+                </div>
+                <div class="flex justify-end gap-4 pt-4">
+                    <button type="button" id="log-modal-cancel-btn" class="bg-gray-500 text-white font-semibold py-2 px-6 rounded-lg hover:bg-gray-600 transition duration-300">Cancel</button>
+                    <button type="submit" class="bg-green-500 text-white font-semibold py-2 px-6 rounded-lg hover:bg-green-600 transition duration-300 shadow">Log Output</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
     <div id="edit-log-modal" class="modal">
         <div class="modal-content bg-white dark:bg-gray-800 dark:border-gray-600">
@@ -160,6 +223,29 @@
         </div>
     </div>
 
+    <!-- Floating Action Button -->
+     <button id="open-log-modal-fab" class="fixed bottom-24 right-6 bg-blue-600 text-white p-4 rounded-full shadow-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900 no-print">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+        </svg>
+    </button>
+
+    <!-- Bottom Navigation -->
+    <nav class="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 flex justify-around no-print">
+        <button data-page="overview-page" class="nav-btn flex-1 p-3 text-center text-blue-600 dark:text-blue-500">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7" /></svg>
+            <span class="text-xs">Overview</span>
+        </button>
+        <button data-page="log-page" class="nav-btn flex-1 p-3 text-center text-gray-500 dark:text-gray-400">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>
+            <span class="text-xs">Log</span>
+        </button>
+        <button data-page="settings-page" class="nav-btn flex-1 p-3 text-center text-gray-500 dark:text-gray-400">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+            <span class="text-xs">Settings</span>
+        </button>
+    </nav>
+
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
@@ -174,17 +260,24 @@
             const addDrainForm = document.getElementById('add-drain-form');
             const drainNameInput = document.getElementById('drain-name-input');
             const drainsList = document.getElementById('drains-list');
-            const drainSelect = document.getElementById('drain-select');
             
+            const openLogModalFab = document.getElementById('open-log-modal-fab');
+            const logOutputModal = document.getElementById('log-output-modal');
             const logOutputForm = document.getElementById('log-output-form');
+            const drainSelect = document.getElementById('drain-select');
             const outputAmountInput = document.getElementById('output-amount');
             const outputDateInput = document.getElementById('output-date');
             const outputNotesInput = document.getElementById('output-notes');
-            const logHistoryBody = document.getElementById('log-history-body');
+            const logModalCancelBtn = document.getElementById('log-modal-cancel-btn');
 
-            const summaryTableHead = document.getElementById('summary-table-head');
-            const summaryTableBody = document.getElementById('summary-table-body');
+            const logHistoryBody = document.getElementById('log-history-body');
             
+            const printableSummaryHead = document.getElementById('printable-summary-head');
+            const printableSummaryBody = document.getElementById('printable-summary-body');
+            const printBtn = document.getElementById('print-btn');
+            
+            const rollingSummaryList = document.getElementById('rolling-summary-list');
+
             const exportBtn = document.getElementById('export-data-btn');
             const importInput = document.getElementById('import-data-input');
 
@@ -192,6 +285,8 @@
             const modalMessage = document.getElementById('modal-message');
             const modalCloseBtn = document.getElementById('modal-close-btn');
             const darkModeToggle = document.getElementById('dark-mode-toggle');
+            const sunIcon = document.getElementById('sun-icon');
+            const moonIcon = document.getElementById('moon-icon');
 
             const editLogModal = document.getElementById('edit-log-modal');
             const editLogForm = document.getElementById('edit-log-form');
@@ -202,8 +297,12 @@
             const editOutputNotes = document.getElementById('edit-output-notes');
             const editModalCancelBtn = document.getElementById('edit-modal-cancel-btn');
 
+            const navButtons = document.querySelectorAll('.nav-btn');
+            const pages = document.querySelectorAll('.page');
+            const thresholdInput = document.getElementById('threshold-input');
+
             // --- App State ---
-            let appData = { drains: [], logs: [] };
+            let appData = { drains: [], logs: [], settings: { threshold: 15 } };
             
             // --- Local Storage and Utility Functions ---
             const saveData = () => {
@@ -213,8 +312,12 @@
             const loadData = () => {
                 const data = localStorage.getItem('drainTrackerData');
                 if (data) {
-                    appData = JSON.parse(data);
+                    const parsedData = JSON.parse(data);
+                    appData.drains = parsedData.drains || [];
+                    appData.logs = parsedData.logs || [];
+                    appData.settings = parsedData.settings || { threshold: 15 };
                 }
+                thresholdInput.value = appData.settings.threshold;
             };
             
             const showMessage = (message) => {
@@ -222,7 +325,6 @@
                 modal.style.display = 'flex';
             };
             modalCloseBtn.onclick = () => modal.style.display = 'none';
-            window.onclick = (event) => { if (event.target == modal) modal.style.display = "none"; };
 
             const getLocalISOString = (date = new Date()) => {
                 const year = date.getFullYear();
@@ -247,46 +349,29 @@
                     drainsList.innerHTML = '<li class="text-gray-500 dark:text-gray-400">No drains added yet.</li>';
                 } else {
                     sortedDrains.forEach(drain => {
-                        // --- Low Output Indicator Logic ---
                         const today = new Date();
                         today.setHours(0, 0, 0, 0);
-
                         const yesterday = new Date(today);
                         yesterday.setDate(today.getDate() - 1);
-
                         const dayBefore = new Date(today);
                         dayBefore.setDate(today.getDate() - 2);
 
                         const drainLogs = appData.logs.filter(log => log.drainId === drain.id);
-
-                        const yesterdayLogs = drainLogs.filter(log => {
-                            const logDate = new Date(log.date);
-                            return logDate >= yesterday && logDate < today;
-                        });
+                        const yesterdayLogs = drainLogs.filter(log => new Date(log.date) >= yesterday && new Date(log.date) < today);
                         const yesterdayTotal = yesterdayLogs.reduce((sum, log) => sum + parseFloat(log.amount), 0);
-
-                        const dayBeforeLogs = drainLogs.filter(log => {
-                            const logDate = new Date(log.date);
-                            return logDate >= dayBefore && logDate < yesterday;
-                        });
+                        const dayBeforeLogs = drainLogs.filter(log => new Date(log.date) >= dayBefore && new Date(log.date) < yesterday);
                         const dayBeforeTotal = dayBeforeLogs.reduce((sum, log) => sum + parseFloat(log.amount), 0);
 
                         let indicatorHTML = '';
-                        // Condition: total output was < 15cc for both of the last two full days.
-                        // We also check that there was at least one log on each day to avoid false positives for new drains.
-                        if (yesterdayLogs.length > 0 && dayBeforeLogs.length > 0 && yesterdayTotal <= 15 && dayBeforeTotal <= 15) {
-                            indicatorHTML = `<span class="ml-2 h-3 w-3 bg-green-500 rounded-full animate-pulse" title="Output has been less than 15cc for the last 2 full days."></span>`;
+                        if (yesterdayLogs.length > 0 && dayBeforeLogs.length > 0 && yesterdayTotal <= appData.settings.threshold && dayBeforeTotal <= appData.settings.threshold) {
+                            indicatorHTML = `<span class="ml-2 h-3 w-3 bg-green-500 rounded-full animate-pulse" title="Output has been ${appData.settings.threshold}cc or less for the last 2 full days."></span>`;
                         }
                         
-                        // --- Render List Item ---
                         const listItem = document.createElement('li');
                         listItem.className = 'flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg';
-                        listItem.innerHTML = `
-                            <span class="font-medium flex items-center">${drain.name}${indicatorHTML}</span>
-                            <button data-id="${drain.id}" class="delete-drain-btn text-red-500 hover:text-red-700 font-semibold">Delete</button>`;
+                        listItem.innerHTML = `<span class="font-medium flex items-center">${drain.name}${indicatorHTML}</span><button data-id="${drain.id}" class="delete-drain-btn text-red-500 hover:text-red-700 font-semibold">Delete</button>`;
                         drainsList.appendChild(listItem);
                         
-                        // --- Render Select Options ---
                         const option = document.createElement('option');
                         option.value = drain.id;
                         option.textContent = drain.name;
@@ -322,61 +407,206 @@
                 });
             };
 
-            const renderSummaryTable = () => {
-                summaryTableHead.innerHTML = '';
-                summaryTableBody.innerHTML = '';
-                
+            const renderPrintableSummary = () => {
+                printableSummaryHead.innerHTML = '';
+                printableSummaryBody.innerHTML = '';
+
                 const sortedDrains = [...appData.drains].sort((a, b) => a.name.localeCompare(b.name));
 
                 if (sortedDrains.length === 0) {
-                    summaryTableHead.innerHTML = '<tr><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Date</th></tr>';
-                    summaryTableBody.innerHTML = `<tr><td colspan="1" class="text-center py-4 text-gray-500 dark:text-gray-400">Add a drain to see the summary.</td></tr>`;
+                    printableSummaryBody.innerHTML = `<tr><td class="text-center py-4 text-gray-500 dark:text-gray-400">Add drains to see the summary.</td></tr>`;
                     return;
                 }
+
                 const headerRow = document.createElement('tr');
-                let headerHTML = '<th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Date</th>';
-                sortedDrains.forEach(drain => { headerHTML += `<th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">${drain.name}</th>`; });
-                headerHTML += '<th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider font-bold">Daily Total</th>';
+                let headerHTML = '<th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Time</th>';
+                sortedDrains.forEach(drain => {
+                    headerHTML += `<th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">${drain.name}</th>`;
+                });
                 headerRow.innerHTML = headerHTML;
-                summaryTableHead.appendChild(headerRow);
+                printableSummaryHead.appendChild(headerRow);
 
                 if (appData.logs.length === 0) {
-                    summaryTableBody.innerHTML = `<tr><td colspan="${sortedDrains.length + 2}" class="text-center py-4 text-gray-500 dark:text-gray-400">No logs recorded yet.</td></tr>`;
+                    printableSummaryBody.innerHTML = `<tr><td colspan="${sortedDrains.length + 1}" class="text-center py-4 text-gray-500 dark:text-gray-400">No logs recorded yet.</td></tr>`;
                     return;
                 }
-                const dailySummaries = appData.logs.reduce((acc, log) => {
+                
+                const logsByDay = appData.logs.reduce((acc, log) => {
                     const date = new Date(log.date);
                     const dateKey = new Date(date.getFullYear(), date.getMonth(), date.getDate()).toISOString().split('T')[0];
-                    if (!acc[dateKey]) acc[dateKey] = {};
-                    acc[dateKey][log.drainId] = (acc[dateKey][log.drainId] || 0) + parseFloat(log.amount);
+                    if (!acc[dateKey]) acc[dateKey] = [];
+                    acc[dateKey].push(log);
                     return acc;
                 }, {});
-                Object.keys(dailySummaries).sort((a, b) => new Date(b) - new Date(a)).forEach(date => {
-                    const row = document.createElement('tr');
-                    row.className = "bg-white dark:bg-gray-800";
-                    let dailyTotal = 0;
-                    let rowHTML = `<td class="px-6 py-4 whitespace-nowrap font-medium">${date}</td>`;
-                    sortedDrains.forEach(drain => {
-                        const amount = dailySummaries[date][drain.id] || 0;
-                        rowHTML += `<td class="px-6 py-4 whitespace-nowrap">${amount.toFixed(1)} cc</td>`;
-                        dailyTotal += amount;
+
+                const sortedDates = Object.keys(logsByDay).sort((a, b) => new Date(b) - new Date(a));
+
+                sortedDates.forEach(date => {
+                    const dayHeaderRow = document.createElement('tr');
+                    dayHeaderRow.className = "bg-gray-100 dark:bg-gray-800";
+                    dayHeaderRow.innerHTML = `<td colspan="${sortedDrains.length + 1}" class="px-6 py-3 text-left text-sm font-bold text-gray-900 dark:text-white">Day: ${date}</td>`;
+                    printableSummaryBody.appendChild(dayHeaderRow);
+
+                    const logsForDay = logsByDay[date].sort((a,b) => new Date(a.date) - new Date(b.date));
+                    
+                    const timeClumps = [];
+                    let currentClump = null;
+
+                    logsForDay.forEach(log => {
+                        const logTime = new Date(log.date);
+                        if (!currentClump || (logTime.getTime() - new Date(currentClump.clumpTime).getTime()) > 10 * 60 * 1000) {
+                            if (currentClump) timeClumps.push(currentClump);
+                            currentClump = {
+                                clumpTime: log.date,
+                                outputs: {}
+                            };
+                        }
+                        currentClump.outputs[log.drainId] = (currentClump.outputs[log.drainId] || 0) + parseFloat(log.amount);
                     });
-                    rowHTML += `<td class="px-6 py-4 whitespace-nowrap font-bold">${dailyTotal.toFixed(1)} cc</td>`;
-                    row.innerHTML = rowHTML;
-                    summaryTableBody.appendChild(row);
+                    if (currentClump) timeClumps.push(currentClump);
+
+                    const dailyTotals = {};
+
+                    timeClumps.forEach(clump => {
+                        const row = document.createElement('tr');
+                        row.className = "bg-white dark:bg-gray-800/50";
+                        const formattedTime = new Date(clump.clumpTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                        let rowHTML = `<td class="px-6 py-4 whitespace-nowrap font-medium">${formattedTime}</td>`;
+                        
+                        sortedDrains.forEach(drain => {
+                            const amount = clump.outputs[drain.id] || 0;
+                            rowHTML += `<td class="px-6 py-4 whitespace-nowrap">${amount > 0 ? amount.toFixed(1) + ' cc' : '-'}</td>`;
+                            dailyTotals[drain.id] = (dailyTotals[drain.id] || 0) + amount;
+                        });
+                        row.innerHTML = rowHTML;
+                        printableSummaryBody.appendChild(row);
+                    });
+
+                    const totalRow = document.createElement('tr');
+                    totalRow.className = "bg-gray-200 dark:bg-gray-700 font-bold";
+                    let totalHTML = `<td class="px-6 py-4 whitespace-nowrap">Total</td>`;
+                    sortedDrains.forEach(drain => {
+                        const totalAmount = dailyTotals[drain.id] || 0;
+                        totalHTML += `<td class="px-6 py-4 whitespace-nowrap">${totalAmount.toFixed(1)} cc</td>`;
+                    });
+                    totalRow.innerHTML = totalHTML;
+                    printableSummaryBody.appendChild(totalRow);
+                });
+            };
+
+            const renderRollingSummary = () => {
+                rollingSummaryList.innerHTML = '';
+
+                if (appData.drains.length === 0) {
+                    rollingSummaryList.innerHTML = '<li class="text-gray-500 dark:text-gray-400 col-span-full text-center">No drains to summarize.</li>';
+                    return;
+                }
+
+                const now = new Date();
+                const twentyFourHoursAgo = new Date(now.getTime() - (24 * 60 * 60 * 1000));
+                const fortyEightHoursAgo = new Date(now.getTime() - (48 * 60 * 60 * 1000));
+
+                const sortedDrains = [...appData.drains].sort((a, b) => a.name.localeCompare(b.name));
+                const threshold = appData.settings.threshold;
+
+                sortedDrains.forEach(drain => {
+                    const logs24h = appData.logs.filter(log =>
+                        log.drainId === drain.id && new Date(log.date) >= twentyFourHoursAgo
+                    );
+                    const total24h = logs24h.reduce((sum, log) => sum + parseFloat(log.amount), 0);
+
+                    const logs48h = appData.logs.filter(log =>
+                        log.drainId === drain.id && new Date(log.date) >= fortyEightHoursAgo
+                    );
+                    const total48h = logs48h.reduce((sum, log) => sum + parseFloat(log.amount), 0);
+
+                    let colorClass = 'bg-gray-400'; // Default
+                    if (total24h <= threshold) {
+                        colorClass = 'bg-green-500';
+                    } else if (total24h > threshold && total24h <= threshold * 1.5) {
+                        colorClass = 'bg-yellow-500';
+                    } else {
+                        colorClass = 'bg-red-500';
+                    }
+
+                    const listItem = document.createElement('li');
+                    listItem.className = 'text-center p-3 bg-white dark:bg-gray-700/50 rounded-lg shadow';
+                    listItem.innerHTML = `
+                        <div class="flex items-center justify-center font-semibold text-gray-800 dark:text-gray-200">
+                            <span class="w-3 h-3 rounded-full mr-2 ${colorClass}"></span>
+                            <span>${drain.name}</span>
+                        </div>
+                        <div class="mt-2 grid grid-cols-2 divide-x divide-gray-300 dark:divide-gray-600 text-sm">
+                            <div class="text-gray-500 dark:text-gray-400 text-center pr-2">
+                                <div>24h:</div>
+                                <div class="text-lg font-bold text-blue-600 dark:text-blue-400">${total24h.toFixed(1)} cc</div>
+                            </div>
+                            <div class="text-gray-500 dark:text-gray-400 text-center pl-2">
+                                <div>48h:</div>
+                                <div class="text-lg font-bold text-blue-600 dark:text-blue-400">${total48h.toFixed(1)} cc</div>
+                            </div>
+                        </div>
+                    `;
+                    rollingSummaryList.appendChild(listItem);
                 });
             };
             
             const renderAll = () => {
                 renderDrains();
                 renderLogs();
-                renderSummaryTable();
+                renderPrintableSummary();
+                renderRollingSummary();
             };
 
             // --- Event Handlers ---
-            darkModeToggle.addEventListener('click', () => {
+            function handleThemeToggle() {
                 const isDark = document.documentElement.classList.toggle('dark');
                 localStorage.setItem('theme', isDark ? 'dark' : 'light');
+                updateThemeIcons(isDark);
+            }
+
+            function updateThemeIcons(isDark) {
+                if (isDark) {
+                    moonIcon.classList.remove('hidden');
+                    sunIcon.classList.add('hidden');
+                } else {
+                    moonIcon.classList.add('hidden');
+                    sunIcon.classList.remove('hidden');
+                }
+            }
+
+            darkModeToggle.addEventListener('click', handleThemeToggle);
+
+            printBtn.addEventListener('click', () => {
+                window.print();
+            });
+
+            openLogModalFab.addEventListener('click', () => {
+                logOutputForm.reset();
+                outputDateInput.value = getLocalISOString();
+                logOutputModal.style.display = 'flex';
+            });
+
+            logModalCancelBtn.addEventListener('click', () => {
+                logOutputModal.style.display = 'none';
+            });
+
+            navButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    const targetPageId = button.dataset.page;
+                    
+                    pages.forEach(page => {
+                        page.classList.add('hidden');
+                    });
+                    document.getElementById(targetPageId).classList.remove('hidden');
+
+                    navButtons.forEach(btn => {
+                        btn.classList.remove('text-blue-600', 'dark:text-blue-500');
+                        btn.classList.add('text-gray-500', 'dark:text-gray-400');
+                    });
+                    button.classList.add('text-blue-600', 'dark:text-blue-500');
+                    button.classList.remove('text-gray-500', 'dark:text-gray-400');
+                });
             });
 
             addDrainForm.addEventListener('submit', (e) => {
@@ -418,8 +648,7 @@
                     appData.logs.push(logData);
                     saveData();
                     renderAll();
-                    logOutputForm.reset();
-                    outputDateInput.value = getLocalISOString();
+                    logOutputModal.style.display = 'none';
                     showMessage('Drainage output logged successfully.');
                 } else {
                     showMessage('Please fill in all required fields correctly.');
@@ -482,6 +711,19 @@
                 editLogModal.style.display = 'none';
             });
             
+            thresholdInput.addEventListener('change', () => {
+                const newThreshold = parseFloat(thresholdInput.value);
+                if (!isNaN(newThreshold) && newThreshold >= 0) {
+                    appData.settings.threshold = newThreshold;
+                    saveData();
+                    renderAll();
+                    showMessage(`Low output threshold set to ${newThreshold}cc.`);
+                } else {
+                    showMessage("Please enter a valid number for the threshold.");
+                    thresholdInput.value = appData.settings.threshold;
+                }
+            });
+
             exportBtn.addEventListener('click', () => {
                 if (appData.drains.length === 0 && appData.logs.length === 0) {
                     showMessage('No data to export.');
@@ -515,8 +757,13 @@
                         if (importedData && Array.isArray(importedData.drains) && Array.isArray(importedData.logs)) {
                             if (confirm('Are you sure you want to import this data? This will overwrite all current data.')) {
                                 appData = importedData;
+                                // Ensure settings object exists
+                                if (!appData.settings) {
+                                    appData.settings = { threshold: 15 };
+                                }
                                 saveData();
                                 renderAll();
+                                thresholdInput.value = appData.settings.threshold;
                                 showMessage('Data imported successfully!');
                             }
                         } else {
@@ -534,7 +781,7 @@
             // --- Initial Load ---
             loadData();
             renderAll();
-            outputDateInput.value = getLocalISOString();
+            updateThemeIcons(localStorage.getItem('theme') === 'dark' || (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches));
         });
     </script>
 </body>
