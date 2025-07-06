@@ -1,7 +1,7 @@
 {
   "name": "drain-app",
   "version": "0.1.0",
-  "homepage": "https://trantechsolutions.github.io/drainage-app",
+  "homepage": "https://trantechsolutions.github.io/drainage-app/",
   "private": true,
   "dependencies": {
     "@testing-library/dom": "^10.4.0",
