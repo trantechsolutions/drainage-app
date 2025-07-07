@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 import Header from './components/Header';
-import RollingSummary from './components/RollingSummary';
+import ThresholdsSummary from './components/ThresholdsSummary';
 import PrintableSummary from './components/PrintableSummary';
 import DetailedLogHistory from './components/DetailedLogHistory';
 import LogOutputModal from './components/LogOutputModal';
@@ -12,26 +12,44 @@ const generateId = () => `id_${new Date().getTime()}_${Math.random().toString(36
 
 // --- Main App Component ---
 export default function App() {
-    const [appData, setAppData] = useState({ drains: [], logs: [], settings: { threshold: 15 } });
+    const [appData, setAppData] = useState({ drains: [], logs: [], settings: { rules: [] } });
     const [currentPage, setCurrentPage] = useState('overview-page');
     const [isLogModalOpen, setIsLogModalOpen] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [logToEdit, setLogToEdit] = useState(null);
     const [message, setMessage] = useState('');
     const [isDark, setIsDark] = useState(false);
+    const draggedItem = useRef(null);
+    const dragOverItem = useRef(null);
 
     const loadData = useCallback(() => {
         const data = localStorage.getItem('drainTrackerData');
         if (data) {
             const parsedData = JSON.parse(data);
+            let settings = { rules: [] }; // Default new structure
+
+            // Check if settings exist and migrate if it's the old format
+            if (parsedData.settings) {
+                if (parsedData.settings.threshold && !parsedData.settings.rules) {
+                    // Old format detected: migrate to new rule-based format
+                    settings.rules.push({
+                        id: generateId(),
+                        amount: parsedData.settings.threshold,
+                        hours: 24 // Sensible default for the old single threshold
+                    });
+                } else if (parsedData.settings.rules) {
+                    // New format, use it as is
+                    settings = parsedData.settings;
+                }
+            }
+            
             setAppData({
                 drains: parsedData.drains || [],
                 logs: parsedData.logs || [],
-                settings: parsedData.settings || { threshold: 15 }
+                settings: settings
             });
         }
     }, []);
-
     const saveData = useCallback((data) => {
         localStorage.setItem('drainTrackerData', JSON.stringify(data));
     }, []);
@@ -116,14 +134,47 @@ export default function App() {
             setMessage('Log entry deleted.');
         }
     };
-    
-    const handleThresholdChange = (e) => {
-        const newThreshold = parseFloat(e.target.value);
-        if (!isNaN(newThreshold) && newThreshold >= 0) {
-            const newData = { ...appData, settings: { ...appData.settings, threshold: newThreshold } };
+
+    const handleAddRule = (e) => {
+        e.preventDefault();
+        const amount = parseFloat(e.target.elements['rule-amount'].value);
+        const hours = parseInt(e.target.elements['rule-hours'].value, 10);
+        const interval = parseInt(e.target.elements['rule-interval'].value, 10);
+        
+        if (!isNaN(amount) && !isNaN(hours) && !isNaN(interval) && amount > 0 && hours > 0 && interval > 0) {
+             if (hours % interval !== 0) {
+                setMessage('Timeframe must be divisible by the interval.');
+                return;
+            }
+            const newRule = { id: generateId(), amount, hours, interval };
+            const newRules = [...appData.settings.rules, newRule];
+            const newData = { ...appData, settings: { ...appData.settings, rules: newRules } };
             setAppData(newData);
             saveData(newData);
+            setMessage('New threshold rule added.');
+            e.target.reset();
+        } else {
+            setMessage('Please enter valid numbers for all fields.');
         }
+    };
+
+    const handleDeleteRule = (id) => {
+        const newRules = appData.settings.rules.filter(rule => rule.id !== id);
+        const newData = { ...appData, settings: { ...appData.settings, rules: newRules } };
+        setAppData(newData);
+        saveData(newData);
+        setMessage('Threshold rule deleted.');
+    };
+
+    const handleRuleReorder = () => {
+        const rules = [...appData.settings.rules];
+        const draggedItemContent = rules.splice(draggedItem.current, 1)[0];
+        rules.splice(dragOverItem.current, 0, draggedItemContent);
+        draggedItem.current = null;
+        dragOverItem.current = null;
+        const newData = { ...appData, settings: { ...appData.settings, rules: rules } };
+        setAppData(newData);
+        saveData(newData);
     };
     
     const handleExport = () => {
@@ -149,7 +200,7 @@ export default function App() {
                         const newData = {
                             drains: importedData.drains,
                             logs: importedData.logs,
-                            settings: importedData.settings || { threshold: 15 }
+                            settings: importedData.settings || { rules: [] }
                         };
                         setAppData(newData);
                         saveData(newData);
@@ -193,9 +244,9 @@ export default function App() {
             <main class="pb-24">
                 <div className={`page space-y-8 ${currentPage === 'overview-page' ? '' : 'hidden'}`}>
                     <section className="mb-8 p-4 bg-white dark:bg-gray-800 dark:text-white p-6 rounded-lg shadow-md no-print">
-                        <h2 className="text-2xl font-semibold mb-4">Rolling Totals</h2>
+                        <h2 className="text-2xl font-semibold mb-4">Thresholds</h2>
                         <ul className="flex flex-wrap justify-center gap-4">
-                            <RollingSummary drains={appData.drains} logs={appData.logs} settings={appData.settings} />
+                            <ThresholdsSummary drains={appData.drains} logs={appData.logs} rules={appData.settings.rules} />
                         </ul>
                     </section>
                     <section className="bg-white dark:bg-gray-800 dark:text-white p-6 rounded-lg shadow-md">
@@ -236,11 +287,40 @@ export default function App() {
                         </div>
                     </section>
                     <section className="bg-white dark:bg-gray-800 dark:text-white p-6 rounded-lg shadow-md no-print">
-                         <h2 className="text-2xl font-semibold mb-4 border-b dark:border-gray-700 pb-2">App Settings</h2>
-                         <div>
-                            <label htmlFor="threshold-input" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Low Output Threshold (cc)</label>
-                            <input type="number" id="threshold-input" value={appData.settings.threshold} onChange={handleThresholdChange} min="0" className="mt-1 block w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700" placeholder="e.g., 15" />
-                            <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">Set the daily output amount that is considered low. Used for the colored indicators.</p>
+                         <h2 className="text-2xl font-semibold mb-4 border-b dark:border-gray-700 pb-2">Manage Thresholds</h2>
+                         <form onSubmit={handleAddRule} className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
+                            <div className="sm:col-span-1">
+                                <label htmlFor="rule-amount" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Amount (cc)</label>
+                                <input type="number" name="rule-amount" min="0" className="mt-1 block w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700" required />
+                            </div>
+                             <div className="sm:col-span-1">
+                                <label htmlFor="rule-hours" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Timeframe (hours)</label>
+                                <input type="number" name="rule-hours" min="1" className="mt-1 block w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700" required />
+                            </div>
+                            <div className="sm:col-span-1">
+                                <label htmlFor="rule-interval" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Interval (hours)</label>
+                                <input type="number" name="rule-interval" min="1" className="mt-1 block w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700" required />
+                            </div>
+                            <button type="submit" className="sm:col-span-1 bg-green-500 text-white font-semibold py-3 px-6 rounded-lg hover:bg-green-600">Add Rule</button>
+                         </form>
+                         <div className="mt-6">
+                            <h3 className="text-xl font-semibold mb-2">Current Rules:</h3>
+                            <ul className="space-y-2">
+                                {appData.settings.rules.map((rule, index) => (
+                                    <li 
+                                        key={rule.id} 
+                                        className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg cursor-grab"
+                                        draggable
+                                        onDragStart={(e) => (draggedItem.current = index)}
+                                        onDragEnter={(e) => (dragOverItem.current = index)}
+                                        onDragEnd={handleRuleReorder}
+                                        onDragOver={(e) => e.preventDefault()}
+                                    >
+                                        <span>Avg &lt; {rule.amount}cc / {rule.interval}h (over {rule.hours}h)</span>
+                                        <button onClick={() => handleDeleteRule(rule.id)} className="text-red-500 hover:text-red-700 font-semibold">Delete</button>
+                                    </li>
+                                ))}
+                             </ul>
                          </div>
                     </section>
                     <section className="bg-white dark:bg-gray-800 dark:text-white p-6 rounded-lg shadow-md no-print">
