@@ -170,7 +170,7 @@ export default function App() {
         <div className="container mx-auto p-4 md:p-6 max-w-4xl pb-24 dark:bg-gray-900 bg-gray-100 transition-colors duration-300">
             <Header onToggleTheme={handleToggleTheme} />
             
-            <main>
+            <main class="pb-24">
                 <div className={`page space-y-8 ${currentPage === 'overview-page' ? '' : 'hidden'}`}>
                     <section className="mb-8 p-4 bg-white dark:bg-gray-800 dark:text-white p-6 rounded-lg shadow-md no-print">
                         <h2 className="text-xl font-semibold text-center mb-4 text-gray-800 dark:text-gray-200">Rolling Totals</h2>
