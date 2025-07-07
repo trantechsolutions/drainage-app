@@ -18,6 +18,7 @@ export default function App() {
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [logToEdit, setLogToEdit] = useState(null);
     const [message, setMessage] = useState('');
+    const [isDark, setIsDark] = useState(false);
 
     const loadData = useCallback(() => {
         const data = localStorage.getItem('drainTrackerData');
@@ -37,7 +38,18 @@ export default function App() {
 
     useEffect(() => {
         loadData();
+        const savedTheme = localStorage.getItem('theme');
+        const initialIsDark = savedTheme ? savedTheme === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+        setIsDark(initialIsDark);
     }, [loadData]);
+
+    useEffect(() => {
+        if (isDark) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+    }, [isDark]);
 
     useEffect(() => {
         const isDark = localStorage.getItem('theme') === 'dark' || (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches);
@@ -47,10 +59,9 @@ export default function App() {
     }, []);
 
     const handleToggleTheme = () => {
-        const isDark = document.documentElement.classList.toggle('dark');
-        localStorage.setItem('theme', isDark ? 'dark' : 'light');
-        document.getElementById('sun-icon').classList.toggle('hidden', isDark);
-        document.getElementById('moon-icon').classList.toggle('hidden', !isDark);
+        const newIsDark = !isDark;
+        setIsDark(newIsDark);
+        localStorage.setItem('theme', newIsDark ? 'dark' : 'light');
     };
 
     const handleAddDrain = (e) => {
@@ -156,7 +167,7 @@ export default function App() {
     };
     
     return (
-        <div className="container mx-auto p-4 md:p-6 max-w-4xl pb-24">
+        <div className="container mx-auto p-4 md:p-6 max-w-4xl pb-24 dark:bg-gray-900 bg-gray-100 transition-colors duration-300">
             <Header onToggleTheme={handleToggleTheme} />
             
             <main>
