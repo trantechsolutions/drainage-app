@@ -1,15 +1,15 @@
 {
   "files": {
-    "main.css": "/drainage-app/static/css/main.9d3f4593.css",
-    "main.js": "/drainage-app/static/js/main.4554469a.js",
+    "main.css": "/drainage-app/static/css/main.84e89558.css",
+    "main.js": "/drainage-app/static/js/main.a09c7f9e.js",
     "static/js/453.8f8b38eb.chunk.js": "/drainage-app/static/js/453.8f8b38eb.chunk.js",
     "index.html": "/drainage-app/index.html",
-    "main.9d3f4593.css.map": "/drainage-app/static/css/main.9d3f4593.css.map",
-    "main.4554469a.js.map": "/drainage-app/static/js/main.4554469a.js.map",
+    "main.84e89558.css.map": "/drainage-app/static/css/main.84e89558.css.map",
+    "main.a09c7f9e.js.map": "/drainage-app/static/js/main.a09c7f9e.js.map",
     "453.8f8b38eb.chunk.js.map": "/drainage-app/static/js/453.8f8b38eb.chunk.js.map"
   },
   "entrypoints": [
-    "static/css/main.9d3f4593.css",
-    "static/js/main.4554469a.js"
+    "static/css/main.84e89558.css",
+    "static/js/main.a09c7f9e.js"
   ]
 }
