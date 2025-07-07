@@ -67,7 +67,7 @@ export const DrainBarChart = ({ logs, drains, isDark }) => {
                     <CartesianGrid strokeDasharray="3 3" stroke={isDark ? "#4A5568" : "#E2E8F0"}/>
                     <XAxis dataKey="name" stroke={isDark ? "#A0AEC0" : "#4A5568"}/>
                     <YAxis label={{ value: 'cc', angle: -90, position: 'insideLeft' }} stroke={isDark ? "#A0AEC0" : "#4A5568"}/>
-                    <Tooltip contentStyle={{ backgroundColor: isDark ? '#2D3748' : '#FFFFFF', border: '1px solid #4A5568' }}/>
+                    <Tooltip itemStyle={{ color: isDark ? 'white' : 'black'}} contentStyle={{ backgroundColor: isDark ? '#2D3748' : '#FFFFFF', border: '1px solid #4A5568' }}/>
                     <Bar dataKey="total">
                         {chartData.map((entry, index) => (
                             <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
