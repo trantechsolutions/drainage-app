@@ -165,6 +165,26 @@ export default function App() {
         reader.readAsText(file);
         event.target.value = '';
     };
+
+    const handlePrint = () => {
+        const wasDark = document.documentElement.classList.contains('dark');
+        
+        const afterPrintHandler = () => {
+            if (wasDark) {
+                document.documentElement.classList.add('dark');
+            }
+            window.removeEventListener('afterprint', afterPrintHandler);
+        };
+        window.addEventListener('afterprint', afterPrintHandler);
+
+        if (wasDark) {
+            document.documentElement.classList.remove('dark');
+        }
+
+        setTimeout(() => {
+            window.print();
+        }, 100);
+    };
     
     return (
         <div className="container mx-auto p-4 md:p-6 max-w-4xl pb-24 dark:bg-gray-900 bg-gray-100 transition-colors duration-300">
@@ -173,7 +193,7 @@ export default function App() {
             <main class="pb-24">
                 <div className={`page space-y-8 ${currentPage === 'overview-page' ? '' : 'hidden'}`}>
                     <section className="mb-8 p-4 bg-white dark:bg-gray-800 dark:text-white p-6 rounded-lg shadow-md no-print">
-                        <h2 className="text-xl font-semibold text-center mb-4 text-gray-800 dark:text-gray-200">Rolling Totals</h2>
+                        <h2 className="text-2xl font-semibold mb-4">Rolling Totals</h2>
                         <ul className="flex flex-wrap justify-center gap-4">
                             <RollingSummary drains={appData.drains} logs={appData.logs} settings={appData.settings} />
                         </ul>
@@ -181,7 +201,7 @@ export default function App() {
                     <section className="bg-white dark:bg-gray-800 dark:text-white p-6 rounded-lg shadow-md">
                         <div className="flex justify-between items-center mb-4">
                             <h2 className="text-2xl font-semibold">Time-Grouped Summary</h2>
-                            <button onClick={() => window.print()} className="bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-gray-700 transition duration-300 shadow no-print">Print</button>
+                            <button onClick={handlePrint} className="bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-gray-700 transition duration-300 shadow no-print">Print</button>
                         </div>
                         <div id="printable-area" className="overflow-x-auto">
                             <PrintableSummary drains={appData.drains} logs={appData.logs} />
