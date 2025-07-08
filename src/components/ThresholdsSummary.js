@@ -21,7 +21,7 @@ const ThresholdsSummary = ({ drains, logs, rules = [] }) => {
                         const colorClassAvg = meetsThresholdAvg ? 'bg-green-500' : 'bg-red-500';
 
                         return (
-                            <li key={drain.id} className="flex justify-between items-center p-2 bg-gray-50 dark:bg-gray-700/50 rounded-md">
+                            <li key={drain.id} className="flex justify-between items-center p-2 bg-gray-200 dark:bg-gray-700/50 rounded-md">
                                 <span className="font-medium">{drain.name}</span>
                                 <div className="flex items-center">
                                     <span className="font-semibold mr-2">Avg: {average.toFixed(1)} cc | Total: {total.toFixed(1)} cc</span>

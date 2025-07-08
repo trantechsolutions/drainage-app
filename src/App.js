@@ -244,19 +244,19 @@ export default function App() {
             
             <main class="pb-24">
                 <div className={`page space-y-8 ${currentPage === 'dashboard-page' ? '' : 'hidden'}`}>
-                    <section className="mb-8 p-4 bg-gray-100 dark:bg-gray-700/20 dark:text-white rounded-lg shadow-inner no-print">
+                    <section className="mb-8 p-4 bg-white dark:bg-gray-800 dark:text-white rounded-lg shadow-inner no-print">
                         <h2 className="text-xl font-semibold text-center mb-4 text-gray-800 dark:text-gray-200">Thresholds</h2>
                         <div className="flex flex-wrap justify-center gap-4">
                             <ThresholdsSummary drains={appData.drains} logs={appData.logs} rules={appData.settings.rules} />
                         </div>
                     </section>
-                    <section className="mb-8 p-4 bg-gray-100 dark:bg-gray-700/20 dark:text-white rounded-lg shadow-inner no-print">
+                    <section className="mb-8 p-4 bg-white dark:bg-gray-800 dark:text-white rounded-lg shadow-inner no-print">
                         <h2 className="text-xl font-semibold text-center mb-4 text-gray-800 dark:text-gray-200">Line Graph</h2>
                         <div className="flex flex-wrap justify-center gap-4">
                             <DrainLineChart drains={appData.drains} logs={appData.logs} isDark={isDark} />
                         </div>
                     </section>
-                    <section className="mb-8 p-4 bg-gray-100 dark:bg-gray-700/20 dark:text-white rounded-lg shadow-inner no-print">
+                    <section className="mb-8 p-4 bg-white dark:bg-gray-800 dark:text-white rounded-lg shadow-inner no-print">
                         <h2 className="text-xl font-semibold text-center mb-4 text-gray-800 dark:text-gray-200">Bar Graph</h2>
                         <div className="flex flex-wrap justify-center gap-4">
                             <DrainBarChart drains={appData.drains} logs={appData.logs} isDark={isDark} />
@@ -347,6 +347,25 @@ export default function App() {
                                 Import Data (JSON)
                                 <input type="file" id="import-data-input" onChange={handleImport} className="hidden" accept=".json" />
                             </label>
+                        </div>
+                    </section>
+                    <section class="p-6 no-print rounded-lg shadow-md bg-white dark:bg-gray-800">
+                        <h2 class="pb-2 mb-4 text-2xl font-semibold border-b dark:border-gray-700 dark:text-white">
+                            Privacy and Data Storage
+                        </h2>
+                        <div class="space-y-4">
+                            <div>
+                                <h3 class="text-lg font-medium dark:text-white">Your Data Stays on Your Device</h3>
+                                <p class="mt-1 text-gray-600 dark:text-gray-300">
+                                    This website is designed to respect your privacy. All data generated during your session is stored locally on your device's browser. No information is saved to our servers or any other external location. This means your data is for your use only, right on the computer or mobile device you are using to access this site.
+                                </p>
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-medium dark:text-white">Data Removal</h3>
+                                <p class="mt-1 text-gray-600 dark:text-gray-300">
+                                    You have full control over your data. To completely wipe all information stored by this website, simply clear your browser's cache for this site. Once the cache is cleared, all associated data will be permanently removed from your device.
+                                </p>
+                            </div>
                         </div>
                     </section>
                 </div>
