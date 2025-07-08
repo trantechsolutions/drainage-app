@@ -6,3 +6,5 @@ export const getLocalISOString = (date = new Date()) => {
     const minutes = date.getMinutes().toString().padStart(2, '0');
     return `${year}-${month}-${day}T${hours}:${minutes}`;
 };
+
+export const generateId = () => `id_${new Date().getTime()}_${Math.random().toString(36).substr(2, 9)}`;

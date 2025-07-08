@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import useAppData from './hooks/useAppData';
 
 import Header from './components/Header';
 import ThresholdsSummary from './components/ThresholdsSummary';
@@ -9,245 +9,48 @@ import LogOutputModal from './components/LogOutputModal';
 import EditLogModal from './components/EditLogModal';
 import MessageModal from './components/MessageModal';
 
-const generateId = () => `id_${new Date().getTime()}_${Math.random().toString(36).substr(2, 9)}`;
-
 // --- Main App Component ---
 export default function App() {
-    const [appData, setAppData] = useState({ drains: [], logs: [], settings: { rules: [] } });
-    const [currentPage, setCurrentPage] = useState('dashboard-page');
-    const [isLogModalOpen, setIsLogModalOpen] = useState(false);
-    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-    const [logToEdit, setLogToEdit] = useState(null);
-    const [message, setMessage] = useState('');
-    const [isDark, setIsDark] = useState(false);
-    const draggedItem = useRef(null);
-    const dragOverItem = useRef(null);
+    const {
+        appData,
+        handleAddDrain,
+        handleDeleteDrain,
+        handleAddLog,
+        handleEditLog,
+        handleDeleteLog,
+        handleAddRule,
+        handleDeleteRule,
+        handleRuleReorder,
+        handleIndicatorModeChange,
+        handleExport,
+        handleImport,
+        draggedItem,
+        dragOverItem,
+        handleToggleTheme,
+        isDark,
+        currentPage,
+        setCurrentPage,
+        isLogModalOpen,
+        setIsLogModalOpen,
+        isEditModalOpen,
+        setIsEditModalOpen,
+        logToEdit,
+        setLogToEdit,
+        message,
+        setMessage,
+        handlePrint
+    } = useAppData();
 
-    const loadData = useCallback(() => {
-        const data = localStorage.getItem('drainTrackerData');
-        if (data) {
-            const parsedData = JSON.parse(data);
-            let settings = { rules: [] }; // Default new structure
-
-            // Check if settings exist and migrate if it's the old format
-            if (parsedData.settings) {
-                if (parsedData.settings.threshold && !parsedData.settings.rules) {
-                    // Old format detected: migrate to new rule-based format
-                    settings.rules.push({
-                        id: generateId(),
-                        amount: parsedData.settings.threshold,
-                        hours: 24 // Sensible default for the old single threshold
-                    });
-                } else if (parsedData.settings.rules) {
-                    // New format, use it as is
-                    settings = parsedData.settings;
-                }
-            }
-            
-            setAppData({
-                drains: parsedData.drains || [],
-                logs: parsedData.logs || [],
-                settings: settings
-            });
-        }
-    }, []);
-    const saveData = useCallback((data) => {
-        localStorage.setItem('drainTrackerData', JSON.stringify(data));
-    }, []);
-
-    useEffect(() => {
-        loadData();
-        const savedTheme = localStorage.getItem('theme');
-        const initialIsDark = savedTheme ? savedTheme === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
-        setIsDark(initialIsDark);
-    }, [loadData]);
-
-    useEffect(() => {
-        if (isDark) {
-            document.documentElement.classList.add('dark');
-        } else {
-            document.documentElement.classList.remove('dark');
-        }
-    }, [isDark]);
-
-    useEffect(() => {
-        const isDark = localStorage.getItem('theme') === 'dark' || (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches);
-        document.documentElement.classList.toggle('dark', isDark);
-        document.getElementById('sun-icon')?.classList.toggle('hidden', isDark);
-        document.getElementById('moon-icon')?.classList.toggle('hidden', !isDark);
-    }, []);
-
-    const handleToggleTheme = () => {
-        const newIsDark = !isDark;
-        setIsDark(newIsDark);
-        localStorage.setItem('theme', newIsDark ? 'dark' : 'light');
-    };
-
-    const handleAddDrain = (e) => {
-        e.preventDefault();
-        const drainName = e.target.elements['drain-name-input'].value.trim();
-        if (drainName) {
-            const newDrain = { id: generateId(), name: drainName };
-            const newData = { ...appData, drains: [...appData.drains, newDrain] };
-            setAppData(newData);
-            saveData(newData);
-            setMessage(`Drain "${drainName}" added.`);
-            e.target.reset();
-        }
-    };
-    
-    const handleDeleteDrain = (id, name) => {
-        if (window.confirm(`Delete drain "${name}" and all its logs?`)) {
-            const newDrains = appData.drains.filter(d => d.id !== id);
-            const newLogs = appData.logs.filter(l => l.drainId !== id);
-            const newData = { ...appData, drains: newDrains, logs: newLogs };
-            setAppData(newData);
-            saveData(newData);
-            setMessage('Drain and logs deleted.');
-        }
-    };
-
-    const handleAddLog = (logData) => {
-        const newLog = { ...logData, id: generateId() };
-        const newData = { ...appData, logs: [...appData.logs, newLog] };
-        setAppData(newData);
-        saveData(newData);
-        setIsLogModalOpen(false);
-        setMessage('Log added successfully.');
-    };
-
-    const handleEditLog = (updatedLog) => {
-        const newLogs = appData.logs.map(log => log.id === updatedLog.id ? updatedLog : log);
-        const newData = { ...appData, logs: newLogs };
-        setAppData(newData);
-        saveData(newData);
-        setIsEditModalOpen(false);
-        setLogToEdit(null);
-        setMessage('Log updated successfully.');
-    };
-    
-    const handleDeleteLog = (id) => {
-        if (window.confirm('Delete this log entry?')) {
-            const newLogs = appData.logs.filter(log => log.id !== id);
-            const newData = { ...appData, logs: newLogs };
-            setAppData(newData);
-            saveData(newData);
-            setMessage('Log entry deleted.');
-        }
-    };
-
-    const handleAddRule = (e) => {
-        e.preventDefault();
-        const amount = parseFloat(e.target.elements['rule-amount'].value);
-        const hours = parseInt(e.target.elements['rule-hours'].value, 10);
-        const interval = parseInt(e.target.elements['rule-interval'].value, 10);
-        
-        if (!isNaN(amount) && !isNaN(hours) && !isNaN(interval) && amount > 0 && hours > 0 && interval > 0) {
-             if (hours % interval !== 0) {
-                setMessage('Timeframe must be divisible by the interval.');
-                return;
-            }
-            const newRule = { id: generateId(), amount, hours, interval };
-            const newRules = [...appData.settings.rules, newRule];
-            const newData = { ...appData, settings: { ...appData.settings, rules: newRules } };
-            setAppData(newData);
-            saveData(newData);
-            setMessage('New threshold rule added.');
-            e.target.reset();
-        } else {
-            setMessage('Please enter valid numbers for all fields.');
-        }
-    };
-
-    const handleDeleteRule = (id) => {
-        const newRules = appData.settings.rules.filter(rule => rule.id !== id);
-        const newData = { ...appData, settings: { ...appData.settings, rules: newRules } };
-        setAppData(newData);
-        saveData(newData);
-        setMessage('Threshold rule deleted.');
-    };
-
-    const handleRuleReorder = () => {
-        const rules = [...appData.settings.rules];
-        const draggedItemContent = rules.splice(draggedItem.current, 1)[0];
-        rules.splice(dragOverItem.current, 0, draggedItemContent);
-        draggedItem.current = null;
-        dragOverItem.current = null;
-        const newData = { ...appData, settings: { ...appData.settings, rules: rules } };
-        setAppData(newData);
-        saveData(newData);
-    };
-    
-    const handleExport = () => {
-        const dataStr = JSON.stringify(appData, null, 2);
-        const dataBlob = new Blob([dataStr], {type: 'application/json'});
-        const url = URL.createObjectURL(dataBlob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `drain-tracker-data-${new Date().toISOString().split('T')[0]}.json`;
-        link.click();
-        URL.revokeObjectURL(url);
-    };
-
-    const handleImport = (event) => {
-        const file = event.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            try {
-                const importedData = JSON.parse(e.target.result);
-                if (importedData && Array.isArray(importedData.drains) && Array.isArray(importedData.logs)) {
-                   if (window.confirm('Are you sure you want to import this data? This will overwrite all current data.')) {
-                        const newData = {
-                            drains: importedData.drains,
-                            logs: importedData.logs,
-                            settings: importedData.settings || { rules: [] }
-                        };
-                        setAppData(newData);
-                        saveData(newData);
-                        setMessage('Data imported successfully!');
-                    }
-                } else {
-                    throw new Error('Invalid file format.');
-                }
-            } catch (error) {
-                setMessage(`Error importing file: ${error.message}`);
-            }
-        };
-        reader.readAsText(file);
-        event.target.value = '';
-    };
-
-    const handlePrint = () => {
-        const wasDark = document.documentElement.classList.contains('dark');
-        
-        const afterPrintHandler = () => {
-            if (wasDark) {
-                document.documentElement.classList.add('dark');
-            }
-            window.removeEventListener('afterprint', afterPrintHandler);
-        };
-        window.addEventListener('afterprint', afterPrintHandler);
-
-        if (wasDark) {
-            document.documentElement.classList.remove('dark');
-        }
-
-        setTimeout(() => {
-            window.print();
-        }, 100);
-    };
-    
     return (
         <div className="container mx-auto p-4 md:p-6 max-w-4xl pb-24 dark:bg-gray-900 bg-gray-100 transition-colors duration-300">
-            <Header onToggleTheme={handleToggleTheme} />
+            <Header onToggleTheme={handleToggleTheme} isDark={isDark} />
             
-            <main class="pb-24">
+            <main className="pb-24">
                 <div className={`page space-y-8 ${currentPage === 'dashboard-page' ? '' : 'hidden'}`}>
                     <section className="mb-8 p-4 bg-white dark:bg-gray-800 dark:text-white rounded-lg shadow-inner no-print">
                         <h2 className="text-xl font-semibold text-center mb-4 text-gray-800 dark:text-gray-200">Thresholds</h2>
                         <div className="flex flex-wrap justify-center gap-4">
-                            <ThresholdsSummary drains={appData.drains} logs={appData.logs} rules={appData.settings.rules} />
+                            <ThresholdsSummary drains={appData.drains} logs={appData.logs} rules={appData.settings.rules} indicatorMode={appData.settings.indicatorMode} />
                         </div>
                     </section>
                     <section className="mb-8 p-4 bg-white dark:bg-gray-800 dark:text-white rounded-lg shadow-inner no-print">
@@ -340,6 +143,16 @@ export default function App() {
                          </div>
                     </section>
                     <section className="bg-white dark:bg-gray-800 dark:text-white p-6 rounded-lg shadow-md no-print">
+                        <h2 className="text-2xl font-semibold mb-4 border-b dark:border-gray-700 pb-2">Indicator Logic</h2>
+                        <div className="flex items-center space-x-4">
+                            <span className="text-gray-700 dark:text-gray-300">Base indicator on:</span>
+                            <div className="flex gap-2">
+                                <button onClick={() => handleIndicatorModeChange('total')} className={`py-2 px-4 rounded-lg ${appData.settings.indicatorMode === 'total' ? 'bg-blue-500 text-white border-2 border-blue-800' : 'bg-white-200 dark:bg-gray-800 border border-gray-400 dark:border-gray-700 text-gray-400 dark:text-gray-700'}`}>Total</button>
+                                <button onClick={() => handleIndicatorModeChange('average')} className={`py-2 px-4 rounded-lg ${appData.settings.indicatorMode === 'average' ? 'bg-blue-500 text-white border-2 border-blue-800' : 'bg-white-200 dark:bg-gray-800 border border-gray-400 dark:border-gray-700 text-gray-400 dark:text-gray-700'}`}>Average</button>
+                            </div>
+                        </div>
+                    </section>
+                    <section className="bg-white dark:bg-gray-800 dark:text-white p-6 rounded-lg shadow-md no-print">
                         <h2 className="text-2xl font-semibold mb-4 border-b dark:border-gray-700 pb-2">Data Management</h2>
                         <div className="flex flex-col sm:flex-row gap-4">
                             <button onClick={handleExport} className="flex-1 bg-purple-500 text-white font-semibold py-3 px-6 rounded-lg hover:bg-purple-600 transition duration-300 shadow">Export Data (JSON)</button>
@@ -349,20 +162,20 @@ export default function App() {
                             </label>
                         </div>
                     </section>
-                    <section class="p-6 no-print rounded-lg shadow-md bg-white dark:bg-gray-800">
-                        <h2 class="pb-2 mb-4 text-2xl font-semibold border-b dark:border-gray-700 dark:text-white">
+                    <section className="p-6 no-print rounded-lg shadow-md bg-white dark:bg-gray-800">
+                        <h2 className="pb-2 mb-4 text-2xl font-semibold border-b dark:border-gray-700 dark:text-white">
                             Privacy and Data Storage
                         </h2>
-                        <div class="space-y-4">
+                        <div className="space-y-4">
                             <div>
-                                <h3 class="text-lg font-medium dark:text-white">Your Data Stays on Your Device</h3>
-                                <p class="mt-1 text-gray-600 dark:text-gray-300">
+                                <h3 className="text-lg font-medium dark:text-white">Your Data Stays on Your Device</h3>
+                                <p className="mt-1 text-gray-600 dark:text-gray-300">
                                     This website is designed to respect your privacy. All data generated during your session is stored locally on your device's browser. No information is saved to our servers or any other external location. This means your data is for your use only, right on the computer or mobile device you are using to access this site.
                                 </p>
                             </div>
                             <div>
-                                <h3 class="text-lg font-medium dark:text-white">Data Removal</h3>
-                                <p class="mt-1 text-gray-600 dark:text-gray-300">
+                                <h3 className="text-lg font-medium dark:text-white">Data Removal</h3>
+                                <p className="mt-1 text-gray-600 dark:text-gray-300">
                                     You have full control over your data. To completely wipe all information stored by this website, simply clear your browser's cache for this site. Once the cache is cleared, all associated data will be permanently removed from your device.
                                 </p>
                             </div>

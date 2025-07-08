@@ -1,0 +1,257 @@
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { generateId } from '../helpers/utils';
+
+export default function useAppData() {
+    const [appData, setAppData] = useState({ drains: [], logs: [], settings: { rules: [] } });
+    const [currentPage, setCurrentPage] = useState('dashboard-page');
+    const [isLogModalOpen, setIsLogModalOpen] = useState(false);
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [logToEdit, setLogToEdit] = useState(null);
+    const [message, setMessage] = useState('');
+    const [isDark, setIsDark] = useState(false);
+    const draggedItem = useRef(null);
+    const dragOverItem = useRef(null);
+
+    const loadData = useCallback(() => {
+        const data = localStorage.getItem('drainTrackerData');
+        if (data) {
+            const parsedData = JSON.parse(data);
+            let settings = { rules: [] }; // Default new structure
+
+            // Check if settings exist and migrate if it's the old format
+            if (parsedData.settings) {
+                if (parsedData.settings.threshold && !parsedData.settings.rules) {
+                    // Old format detected: migrate to new rule-based format
+                    settings.rules.push({
+                        id: generateId(),
+                        amount: parsedData.settings.threshold,
+                        hours: 24 // Sensible default for the old single threshold
+                    });
+                } else if (parsedData.settings.rules) {
+                    // New format, use it as is
+                    settings = parsedData.settings;
+                }
+            }
+
+            setAppData({
+                drains: parsedData.drains || [],
+                logs: parsedData.logs || [],
+                settings: settings
+            });
+        }
+    }, []);
+    const saveData = useCallback((data) => {
+        localStorage.setItem('drainTrackerData', JSON.stringify(data));
+    }, []);
+
+    useEffect(() => {
+        loadData();
+        const savedTheme = localStorage.getItem('theme');
+        const initialIsDark = savedTheme ? savedTheme === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+        setIsDark(initialIsDark);
+    }, [loadData]);
+
+    useEffect(() => {
+        if (isDark) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+    }, [isDark]);
+
+    useEffect(() => {
+        const isDark = localStorage.getItem('theme') === 'dark' || (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        document.documentElement.classList.toggle('dark', isDark);
+        document.getElementById('sun-icon')?.classList.toggle('hidden', isDark);
+        document.getElementById('moon-icon')?.classList.toggle('hidden', !isDark);
+    }, []);
+
+    const handleToggleTheme = () => {
+        const newIsDark = !isDark;
+        setIsDark(newIsDark);
+        localStorage.setItem('theme', newIsDark ? 'dark' : 'light');
+    };
+
+    const handleAddDrain = (e) => {
+        e.preventDefault();
+        const drainName = e.target.elements['drain-name-input'].value.trim();
+        if (drainName) {
+            const newDrain = { id: generateId(), name: drainName };
+            const newData = { ...appData, drains: [...appData.drains, newDrain] };
+            setAppData(newData);
+            saveData(newData);
+            setMessage(`Drain "${drainName}" added.`);
+            e.target.reset();
+        }
+    };
+
+    const handleDeleteDrain = (id, name) => {
+        if (window.confirm(`Delete drain "${name}" and all its logs?`)) {
+            const newDrains = appData.drains.filter(d => d.id !== id);
+            const newLogs = appData.logs.filter(l => l.drainId !== id);
+            const newData = { ...appData, drains: newDrains, logs: newLogs };
+            setAppData(newData);
+            saveData(newData);
+            setMessage('Drain and logs deleted.');
+        }
+    };
+
+    const handleAddLog = (logData) => {
+        const newLog = { ...logData, id: generateId() };
+        const newData = { ...appData, logs: [...appData.logs, newLog] };
+        setAppData(newData);
+        saveData(newData);
+        setIsLogModalOpen(false);
+        setMessage('Log added successfully.');
+    };
+
+    const handleEditLog = (updatedLog) => {
+        const newLogs = appData.logs.map(log => log.id === updatedLog.id ? updatedLog : log);
+        const newData = { ...appData, logs: newLogs };
+        setAppData(newData);
+        saveData(newData);
+        setIsEditModalOpen(false);
+        setLogToEdit(null);
+        setMessage('Log updated successfully.');
+    };
+
+    const handleDeleteLog = (id) => {
+        if (window.confirm('Delete this log entry?')) {
+            const newLogs = appData.logs.filter(log => log.id !== id);
+            const newData = { ...appData, logs: newLogs };
+            setAppData(newData);
+            saveData(newData);
+            setMessage('Log entry deleted.');
+        }
+    };
+
+    const handleAddRule = (e) => {
+        e.preventDefault();
+        const amount = parseFloat(e.target.elements['rule-amount'].value);
+        const hours = parseInt(e.target.elements['rule-hours'].value, 10);
+        const interval = parseInt(e.target.elements['rule-interval'].value, 10);
+
+        if (!isNaN(amount) && !isNaN(hours) && !isNaN(interval) && amount > 0 && hours > 0 && interval > 0) {
+            if (hours % interval !== 0) {
+                setMessage('Timeframe must be divisible by the interval.');
+                return;
+            }
+            const newRule = { id: generateId(), amount, hours, interval };
+            const newRules = [...appData.settings.rules, newRule];
+            const newData = { ...appData, settings: { ...appData.settings, rules: newRules } };
+            setAppData(newData);
+            saveData(newData);
+            setMessage('New threshold rule added.');
+            e.target.reset();
+        } else {
+            setMessage('Please enter valid numbers for all fields.');
+        }
+    };
+
+    const handleDeleteRule = (id) => {
+        const newRules = appData.settings.rules.filter(rule => rule.id !== id);
+        const newData = { ...appData, settings: { ...appData.settings, rules: newRules } };
+        setAppData(newData);
+        saveData(newData);
+        setMessage('Threshold rule deleted.');
+    };
+
+    const handleRuleReorder = () => {
+        const rules = [...appData.settings.rules];
+        const draggedItemContent = rules.splice(draggedItem.current, 1)[0];
+        rules.splice(dragOverItem.current, 0, draggedItemContent);
+        draggedItem.current = null;
+        dragOverItem.current = null;
+        const newData = { ...appData, settings: { ...appData.settings, rules: rules } };
+        setAppData(newData);
+        saveData(newData);
+    };
+
+    const handleIndicatorModeChange = (mode) => {
+        const newData = { ...appData, settings: { ...appData.settings, indicatorMode: mode } };
+        setAppData(newData);
+        saveData(newData);
+    };
+
+    const handleExport = () => {
+        const dataStr = JSON.stringify(appData, null, 2);
+        const dataBlob = new Blob([dataStr], { type: 'application/json' });
+        const url = URL.createObjectURL(dataBlob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `drain-tracker-data-${new Date().toISOString().split('T')[0]}.json`;
+        link.click();
+        URL.revokeObjectURL(url);
+    };
+
+    const handlePrint = () => {
+        const wasDark = document.documentElement.classList.contains('dark');
+        const afterPrintHandler = () => {
+            if (wasDark) document.documentElement.classList.add('dark');
+            window.removeEventListener('afterprint', afterPrintHandler);
+        };
+        window.addEventListener('afterprint', afterPrintHandler);
+        if (wasDark) document.documentElement.classList.remove('dark');
+        setTimeout(() => window.print(), 100);
+    };
+
+    const handleImport = (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const importedData = JSON.parse(e.target.result);
+                if (importedData && Array.isArray(importedData.drains) && Array.isArray(importedData.logs)) {
+                    if (window.confirm('Are you sure you want to import this data? This will overwrite all current data.')) {
+                        const newData = {
+                            drains: importedData.drains,
+                            logs: importedData.logs,
+                            settings: importedData.settings || { rules: [] }
+                        };
+                        setAppData(newData);
+                        saveData(newData);
+                        setMessage('Data imported successfully!');
+                    }
+                } else {
+                    throw new Error('Invalid file format.');
+                }
+            } catch (error) {
+                setMessage(`Error importing file: ${error.message}`);
+            }
+        };
+        reader.readAsText(file);
+        event.target.value = '';
+    };
+
+    return {
+        appData,
+        handleAddDrain,
+        handleDeleteDrain,
+        handleAddLog,
+        handleEditLog,
+        handleDeleteLog,
+        handleAddRule,
+        handleDeleteRule,
+        handleRuleReorder,
+        handleIndicatorModeChange,
+        handleToggleTheme,
+        handleExport,
+        handlePrint,
+        handleImport,
+        currentPage,
+        setCurrentPage,
+        isLogModalOpen,
+        setIsLogModalOpen,
+        isEditModalOpen,
+        setIsEditModalOpen,
+        logToEdit,
+        setLogToEdit,
+        message,
+        setMessage,
+        isDark,
+        setIsDark,
+        draggedItem,
+        dragOverItem
+    }
+}
