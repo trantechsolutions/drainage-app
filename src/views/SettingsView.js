@@ -3,9 +3,11 @@ import ManageThresholds from '../components/settings/ManageThresholds';
 import IndicatorLogic from '../components/settings/IndicatorLogic';
 import DataManagement from '../components/settings/DataManagement';
 import PrivacyInfo from '../components/settings/PrivacyInfo';
+import ModelSettings from '../components/settings/ModelSettings';
 
 const SettingsView = ({
     appData,
+    handleAIPredictionToggle,
     handleAddDrain,
     handleDeleteDrain,
     handleAddRule,
@@ -35,6 +37,10 @@ const SettingsView = ({
             <IndicatorLogic 
                 indicatorMode={appData.settings.indicatorMode}
                 onModeChange={handleIndicatorModeChange}
+            />
+            <ModelSettings 
+                useAIPredictions={appData.settings.useAIPredictions}
+                onToggle={handleAIPredictionToggle}
             />
             <DataManagement 
                 onExport={handleExport}

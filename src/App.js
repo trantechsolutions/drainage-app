@@ -14,6 +14,7 @@ import SettingsView from './views/SettingsView';
 export default function App() {
     const {
         appData,
+        handleAIPredictionToggle,
         handleAddDrain,
         handleDeleteDrain,
         handleAddLog,
@@ -75,6 +76,7 @@ export default function App() {
                         handleIndicatorModeChange={handleIndicatorModeChange}
                         handleExport={handleExport}
                         handleImport={handleImport}
+                        handleAIPredictionToggle={handleAIPredictionToggle}
                     />
                 )}
             </main>

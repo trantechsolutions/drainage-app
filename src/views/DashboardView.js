@@ -1,5 +1,6 @@
 import ThresholdsSummary from '../components/ThresholdsSummary';
 import { DrainLineChart, DrainBarChart } from '../components/DrainCharts';
+import PredictionSummary from '../components/PredictionSummary';
 
 const DashboardView = ({ appData, isDark }) => {
     // Calculate totals for each drain individually
@@ -48,6 +49,13 @@ const DashboardView = ({ appData, isDark }) => {
                     ))}
                 </div>
             </section>
+
+            {appData.settings.useAIPredictions && (
+                <section className="mb-8 p-4 bg-white dark:bg-gray-800 dark:text-white rounded-lg shadow-inner no-print">
+                    <h2 className="text-xl font-semibold text-center mb-4 text-gray-800 dark:text-gray-200">🔮 Output Forecast</h2>
+                    <PredictionSummary logs={appData.logs} drains={appData.drains} />
+                </section>
+            )}
             
             <section className="mb-8 p-4 bg-white dark:bg-gray-800 dark:text-white rounded-lg shadow-inner no-print">
                 <h2 className="text-xl font-semibold text-center mb-4 text-gray-800 dark:text-gray-200">Thresholds</h2>

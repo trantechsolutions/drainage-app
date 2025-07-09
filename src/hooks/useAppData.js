@@ -18,21 +18,29 @@ export default function useAppData() {
         const data = localStorage.getItem('drainTrackerData');
         if (data) {
             const parsedData = JSON.parse(data);
-            let settings = { rules: [] }; // Default new structure
 
-            // Check if settings exist and migrate if it's the old format
+            // 1. Start with a complete default settings object.
+            let settings = {
+                rules: [],
+                indicatorMode: 'total',
+                useAIPredictions: false
+            };
+
+            // 2. If settings exist in the loaded data, merge them.
+            // This brings in any saved settings and preserves them.
             if (parsedData.settings) {
-                if (parsedData.settings.threshold && !parsedData.settings.rules) {
-                    // Old format detected: migrate to new rule-based format
-                    settings.rules.push({
-                        id: generateId(),
-                        amount: parsedData.settings.threshold,
-                        hours: 24 // Sensible default for the old single threshold
-                    });
-                } else if (parsedData.settings.rules) {
-                    // New format, use it as is
-                    settings = parsedData.settings;
-                }
+                settings = { ...settings, ...parsedData.settings };
+            }
+
+            // 3. Perform the specific migration for the old 'threshold' property.
+            // This checks the originally loaded data for the old format.
+            if (parsedData.settings && parsedData.settings.threshold && !parsedData.settings.rules) {
+                // Old format detected: create the 'rules' array.
+                settings.rules = [{
+                    id: generateId(),
+                    amount: parsedData.settings.threshold,
+                    hours: 24 // Sensible default
+                }];
             }
 
             setAppData({
@@ -40,8 +48,21 @@ export default function useAppData() {
                 logs: parsedData.logs || [],
                 settings: settings
             });
+
+        } else {
+            // For brand new users, set the complete default state
+            setAppData({
+                drains: [],
+                logs: [],
+                settings: {
+                    rules: [],
+                    indicatorMode: 'total',
+                    useAIPredictions: false
+                }
+            });
         }
     }, []);
+    
     const saveData = useCallback((data) => {
         localStorage.setItem('drainTrackerData', JSON.stringify(data));
     }, []);
@@ -67,6 +88,12 @@ export default function useAppData() {
         document.getElementById('sun-icon')?.classList.toggle('hidden', isDark);
         document.getElementById('moon-icon')?.classList.toggle('hidden', !isDark);
     }, []);
+
+    const handleAIPredictionToggle = (isEnabled) => {
+        const newData = { ...appData, settings: { ...appData.settings, useAIPredictions: isEnabled } };
+        setAppData(newData);
+        saveData(newData);
+    };
 
     const handleToggleTheme = () => {
         const newIsDark = !isDark;
@@ -276,6 +303,7 @@ export default function useAppData() {
 
     return {
         appData,
+        handleAIPredictionToggle,
         handleAddDrain,
         handleDeleteDrain,
         handleAddLog,
