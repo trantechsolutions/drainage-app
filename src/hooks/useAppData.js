@@ -1,5 +1,7 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { createRoot } from 'react-dom/client'; // Corrected import for React 18
 import { generateId } from '../helpers/utils';
+import CondensedPrintableSummary from '../components/CondensedPrintableSummary'; // Add this import
 
 export default function useAppData() {
     const [appData, setAppData] = useState({ drains: [], logs: [], settings: { rules: [] } });
@@ -125,6 +127,17 @@ export default function useAppData() {
         }
     };
 
+    // Add this function inside your useAppData.js file
+    const handleBulkDelete = (logIds) => {
+        if (window.confirm(`Are you sure you want to delete ${logIds.length} selected logs?`)) {
+            const newLogs = appData.logs.filter(log => !logIds.includes(log.id));
+            const newData = { ...appData, logs: newLogs };
+            setAppData(newData);
+            saveData(newData);
+            setMessage(`${logIds.length} logs deleted.`);
+        }
+    };
+
     const handleAddRule = (e) => {
         e.preventDefault();
         const amount = parseFloat(e.target.elements['rule-amount'].value);
@@ -185,14 +198,51 @@ export default function useAppData() {
     };
 
     const handlePrint = () => {
-        const wasDark = document.documentElement.classList.contains('dark');
-        const afterPrintHandler = () => {
-            if (wasDark) document.documentElement.classList.add('dark');
-            window.removeEventListener('afterprint', afterPrintHandler);
-        };
-        window.addEventListener('afterprint', afterPrintHandler);
-        if (wasDark) document.documentElement.classList.remove('dark');
-        setTimeout(() => window.print(), 100);
+        // 1. Create a temporary container for the printable content
+        const printContainer = document.createElement('div');
+        printContainer.id = 'print-container';
+        document.body.appendChild(printContainer);
+
+        // 2. Create a root and render the component using the imported createRoot function
+        const root = createRoot(printContainer); // Use the imported function
+        root.render(
+            <React.StrictMode>
+                <CondensedPrintableSummary drains={appData.drains} logs={appData.logs} />
+            </React.StrictMode>
+        );
+
+        // 3. Create a style element to hide the main app
+        const style = document.createElement('style');
+        style.innerHTML = `
+            @media print {
+                body > *:not(#print-container) {
+                    display: none;
+                }
+                #print-container {
+                    display: block;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+
+        // 4. Use a timeout to ensure content is rendered before printing
+        setTimeout(() => {
+            const wasDark = document.documentElement.classList.contains('dark');
+            if (wasDark) {
+                document.documentElement.classList.remove('dark');
+            }
+
+            window.print();
+
+            // Clean up after printing
+            if (wasDark) {
+                document.documentElement.classList.add('dark');
+            }
+            
+            document.head.removeChild(style);
+            root.unmount();
+            document.body.removeChild(printContainer);
+        }, 100); // A 100ms delay is usually sufficient
     };
 
     const handleImport = (event) => {
@@ -231,6 +281,7 @@ export default function useAppData() {
         handleAddLog,
         handleEditLog,
         handleDeleteLog,
+        handleBulkDelete,
         handleAddRule,
         handleDeleteRule,
         handleRuleReorder,
