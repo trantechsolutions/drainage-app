@@ -11,9 +11,15 @@ const ChangelogModal = ({ isOpen, onClose }) => {
     useEffect(() => {
         // Fetch the markdown file's content when the modal opens
         if (isOpen) {
-            fetch('/changelog.md')
-                .then(response => response.text())
-                .then(text => setMarkdown(text));
+            fetch(`${process.env.PUBLIC_URL}/changelog.md`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Changelog file not found');
+                    }
+                    return response.text();
+                })
+                .then(text => setMarkdown(text))
+                .catch(error => console.error('Error fetching changelog:', error));
         }
     }, [isOpen]);
 
