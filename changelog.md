@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.8.0 (2025-07-10)
+* **Feat**: Enhanced the Thresholds summary to exclude the current day and provide a detailed breakdown of previous calendar days.
+* **Build**: Implemented a build script to automatically sync the version number from `changelog.md` to `package.json` and the application.
+* **Fix**: Resolved a prop-passing issue in the main application view that affected the "Manage Reminders" component.
+
 ## v0.7.0 (2025-07-10)
 * **Refactor**: Reworked threshold logic to be based on consecutive calendar days instead of a rolling hourly window.
 * **Feat**: Updated the Thresholds summary to display a detailed day-by-day breakdown of output.
