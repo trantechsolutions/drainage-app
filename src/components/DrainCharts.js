@@ -25,19 +25,25 @@ export const DrainLineChart = ({ logs, drains, isDark }) => {
     }
 
     return (
-        <div style={{ width: '100%', height: 400 }}>
-            <ResponsiveContainer>
-                <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke={isDark ? "#4A5568" : "#E2E8F0"}/>
-                    <XAxis dataKey="date" stroke={isDark ? "#A0AEC0" : "#4A5568"}/>
-                    <YAxis label={{ value: 'cc', angle: -90, position: 'insideLeft' }} stroke={isDark ? "#A0AEC0" : "#4A5568"}/>
-                    <Tooltip contentStyle={{ backgroundColor: isDark ? '#2D3748' : '#FFFFFF', border: '1px solid #4A5568' }}/>
-                    <Legend wrapperStyle={{ color: isDark ? "#A0AEC0" : "#4A5568" }}/>
-                    {drains.map((drain, index) => (
-                        <Line key={drain.id} type="monotone" dataKey={drain.name} stroke={colors[index % colors.length]} activeDot={{ r: 8 }} />
-                    ))}
-                </LineChart>
-            </ResponsiveContainer>
+        <div className="w-full">
+            <div style={{ height: 400 }}>
+                <ResponsiveContainer>
+                    <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke={isDark ? "#4A5568" : "#E2E8F0"}/>
+                        <XAxis dataKey="date" stroke={isDark ? "#A0AEC0" : "#4A5568"}/>
+                        <YAxis label={{ value: 'cc', angle: -90, position: 'insideLeft' }} stroke={isDark ? "#A0AEC0" : "#4A5568"}/>
+                        <Tooltip contentStyle={{ backgroundColor: isDark ? '#2D3748' : '#FFFFFF', border: '1px solid #4A5568' }}/>
+                        <Legend wrapperStyle={{ color: isDark ? "#A0AEC0" : "#4A5568" }}/>
+                        {drains.map((drain, index) => (
+                            <Line key={drain.id} type="monotone" dataKey={drain.name} stroke={colors[index % colors.length]} activeDot={{ r: 8 }} />
+                        ))}
+                    </LineChart>
+                </ResponsiveContainer>
+            </div>
+            {/* --- Chart Caption --- */}
+            <p className="text-center text-sm text-gray-500 dark:text-gray-400 mt-2">
+                Daily total output for each drain over time.
+            </p>
         </div>
     );
 };
@@ -61,20 +67,26 @@ export const DrainBarChart = ({ logs, drains, isDark }) => {
     }
 
     return (
-        <div style={{ width: '100%', height: 400 }}>
-            <ResponsiveContainer>
-                <BarChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke={isDark ? "#4A5568" : "#E2E8F0"}/>
-                    <XAxis dataKey="name" stroke={isDark ? "#A0AEC0" : "#4A5568"}/>
-                    <YAxis label={{ value: 'cc', angle: -90, position: 'insideLeft' }} stroke={isDark ? "#A0AEC0" : "#4A5568"}/>
-                    <Tooltip itemStyle={{ color: isDark ? 'white' : 'black'}} contentStyle={{ backgroundColor: isDark ? '#2D3748' : '#FFFFFF', border: '1px solid #4A5568' }}/>
-                    <Bar dataKey="total">
-                        {chartData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
-                        ))}
-                    </Bar>
-                </BarChart>
-            </ResponsiveContainer>
+        <div className="w-full">
+            <div style={{ height: 400 }}>
+                <ResponsiveContainer>
+                    <BarChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke={isDark ? "#4A5568" : "#E2E8F0"}/>
+                        <XAxis dataKey="name" stroke={isDark ? "#A0AEC0" : "#4A5568"}/>
+                        <YAxis label={{ value: 'cc', angle: -90, position: 'insideLeft' }} stroke={isDark ? "#A0AEC0" : "#4A5568"}/>
+                        <Tooltip itemStyle={{ color: isDark ? 'white' : 'black'}} contentStyle={{ backgroundColor: isDark ? '#2D3748' : '#FFFFFF', border: '1px solid #4A5568' }}/>
+                        <Bar dataKey="total">
+                            {chartData.map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
+                            ))}
+                        </Bar>
+                    </BarChart>
+                </ResponsiveContainer>
+            </div>
+            {/* --- Chart Caption --- */}
+            <p className="text-center text-sm text-gray-500 dark:text-gray-400 mt-2">
+                Total output for each drain over the last 7 days.
+            </p>
         </div>
     );
 };

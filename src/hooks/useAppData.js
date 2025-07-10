@@ -1,5 +1,7 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { createRoot } from 'react-dom/client'; // Corrected import for React 18
 import { generateId } from '../helpers/utils';
+import CondensedPrintableSummary from '../components/CondensedPrintableSummary'; // Add this import
 
 export default function useAppData() {
     const [appData, setAppData] = useState({ drains: [], logs: [], settings: { rules: [] } });
@@ -11,38 +13,112 @@ export default function useAppData() {
     const [isDark, setIsDark] = useState(false);
     const draggedItem = useRef(null);
     const dragOverItem = useRef(null);
+    const [isChangelogOpen, setIsChangelogOpen] = useState(false);
+    const notifiedRules = useRef(new Set());
 
     const loadData = useCallback(() => {
         const data = localStorage.getItem('drainTrackerData');
         if (data) {
             const parsedData = JSON.parse(data);
-            let settings = { rules: [] }; // Default new structure
 
-            // Check if settings exist and migrate if it's the old format
+            // 1. Start with a complete default settings object.
+            let settings = {
+                rules: [],
+                indicatorMode: 'total',
+                notificationRules: [],
+                useAIPredictions: false
+            };
+
+            // 2. If settings exist in the loaded data, merge them.
+            // This brings in any saved settings and preserves them.
             if (parsedData.settings) {
-                if (parsedData.settings.threshold && !parsedData.settings.rules) {
-                    // Old format detected: migrate to new rule-based format
-                    settings.rules.push({
-                        id: generateId(),
-                        amount: parsedData.settings.threshold,
-                        hours: 24 // Sensible default for the old single threshold
-                    });
-                } else if (parsedData.settings.rules) {
-                    // New format, use it as is
-                    settings = parsedData.settings;
-                }
+                settings = { ...settings, ...parsedData.settings };
+            }
+
+            // 3. Perform the specific migration for the old 'threshold' property.
+            // This checks the originally loaded data for the old format.
+            if (parsedData.settings && parsedData.settings.threshold && !parsedData.settings.rules) {
+                // Old format detected: create the 'rules' array.
+                settings.rules = [{
+                    id: generateId(),
+                    amount: parsedData.settings.threshold,
+                    hours: 24 // Sensible default
+                }];
             }
 
             setAppData({
                 drains: parsedData.drains || [],
                 logs: parsedData.logs || [],
+                resources: parsedData.resources || [],
                 settings: settings
+            });
+
+        } else {
+            // For brand new users, set the complete default state
+            setAppData({
+                drains: [],
+                logs: [],
+                resources: [],
+                settings: {
+                    rules: [],
+                    indicatorMode: 'total',
+                    notificationRules: [],
+                    useAIPredictions: false
+                }
             });
         }
     }, []);
+    
     const saveData = useCallback((data) => {
         localStorage.setItem('drainTrackerData', JSON.stringify(data));
     }, []);
+
+    useEffect(() => {
+        const checkNotifications = () => {
+            if (!appData.settings.notificationRules || appData.logs.length === 0) return;
+
+            const now = new Date().getTime();
+            
+            appData.settings.notificationRules.forEach(rule => {
+                if (notifiedRules.current.has(rule.id)) return; // Already notified this session
+
+                // Find the most recent log that matches this rule's drainId
+                const relevantLogs = (rule.drainId === 'all')
+                    ? appData.logs
+                    : appData.logs.filter(log => log.drainId === rule.drainId);
+
+                if (relevantLogs.length === 0) return; // No logs for this drain, so nothing to check against.
+
+                const lastLog = relevantLogs.reduce((latest, log) => 
+                    new Date(log.date) > new Date(latest.date) ? log : latest
+                );
+
+                const lastLogTime = new Date(lastLog.date).getTime();
+                const hoursSinceLastLog = (now - lastLogTime) / (1000 * 60 * 60);
+
+                if (hoursSinceLastLog >= rule.hours) {
+                    const drainName = (rule.drainId === 'all')
+                        ? "A drain"
+                        : appData.drains.find(d => d.id === rule.drainId)?.name || 'a drain';
+                    
+                    const message = `Reminder: ${drainName} has not been logged in over ${rule.hours} hours. It may be time for a drain empty.`;
+                    
+                    // Trigger Notification
+                    setMessage(message); // In-app message
+                    if (Notification.permission === 'granted') {
+                        new Notification('Drain Tracker Reminder', { body: message });
+                    }
+
+                    notifiedRules.current.add(rule.id); // Mark as notified for this session
+                }
+            });
+        };
+
+        const intervalId = setInterval(checkNotifications, 5 * 60 * 1000); // Check every 5 minutes
+        return () => clearInterval(intervalId);
+
+    }, [appData.logs, appData.settings.notificationRules, appData.drains, setMessage]);
+
 
     useEffect(() => {
         loadData();
@@ -65,6 +141,29 @@ export default function useAppData() {
         document.getElementById('sun-icon')?.classList.toggle('hidden', isDark);
         document.getElementById('moon-icon')?.classList.toggle('hidden', !isDark);
     }, []);
+
+    const handleAddNotificationRule = (ruleData) => {
+        const newRule = { ...ruleData, id: generateId() };
+        const newRules = [...appData.settings.notificationRules, newRule];
+        const newData = { ...appData, settings: { ...appData.settings, notificationRules: newRules } };
+        setAppData(newData);
+        saveData(newData);
+        setMessage('Notification rule added.');
+    };
+
+    const handleDeleteNotificationRule = (id) => {
+        const newRules = appData.settings.notificationRules.filter(rule => rule.id !== id);
+        const newData = { ...appData, settings: { ...appData.settings, notificationRules: newRules } };
+        setAppData(newData);
+        saveData(newData);
+        setMessage('Notification rule deleted.');
+    };
+
+    const handleAIPredictionToggle = (isEnabled) => {
+        const newData = { ...appData, settings: { ...appData.settings, useAIPredictions: isEnabled } };
+        setAppData(newData);
+        saveData(newData);
+    };
 
     const handleToggleTheme = () => {
         const newIsDark = !isDark;
@@ -125,6 +224,17 @@ export default function useAppData() {
         }
     };
 
+    // Add this function inside your useAppData.js file
+    const handleBulkDelete = (logIds) => {
+        if (window.confirm(`Are you sure you want to delete ${logIds.length} selected logs?`)) {
+            const newLogs = appData.logs.filter(log => !logIds.includes(log.id));
+            const newData = { ...appData, logs: newLogs };
+            setAppData(newData);
+            saveData(newData);
+            setMessage(`${logIds.length} logs deleted.`);
+        }
+    };
+
     const handleAddRule = (e) => {
         e.preventDefault();
         const amount = parseFloat(e.target.elements['rule-amount'].value);
@@ -167,6 +277,24 @@ export default function useAppData() {
         saveData(newData);
     };
 
+    const handleAddResource = (resourceData) => {
+        const newResource = { ...resourceData, id: generateId() };
+        const newData = { ...appData, resources: [...appData.resources, newResource] };
+        setAppData(newData);
+        saveData(newData);
+        setMessage('Resource added successfully.');
+    };
+
+    const handleDeleteResource = (id) => {
+        if (window.confirm('Are you sure you want to delete this resource?')) {
+            const newResources = appData.resources.filter(r => r.id !== id);
+            const newData = { ...appData, resources: newResources };
+            setAppData(newData);
+            saveData(newData);
+            setMessage('Resource deleted.');
+        }
+    };
+
     const handleIndicatorModeChange = (mode) => {
         const newData = { ...appData, settings: { ...appData.settings, indicatorMode: mode } };
         setAppData(newData);
@@ -185,14 +313,51 @@ export default function useAppData() {
     };
 
     const handlePrint = () => {
-        const wasDark = document.documentElement.classList.contains('dark');
-        const afterPrintHandler = () => {
-            if (wasDark) document.documentElement.classList.add('dark');
-            window.removeEventListener('afterprint', afterPrintHandler);
-        };
-        window.addEventListener('afterprint', afterPrintHandler);
-        if (wasDark) document.documentElement.classList.remove('dark');
-        setTimeout(() => window.print(), 100);
+        // 1. Create a temporary container for the printable content
+        const printContainer = document.createElement('div');
+        printContainer.id = 'print-container';
+        document.body.appendChild(printContainer);
+
+        // 2. Create a root and render the component using the imported createRoot function
+        const root = createRoot(printContainer); // Use the imported function
+        root.render(
+            <React.StrictMode>
+                <CondensedPrintableSummary drains={appData.drains} logs={appData.logs} />
+            </React.StrictMode>
+        );
+
+        // 3. Create a style element to hide the main app
+        const style = document.createElement('style');
+        style.innerHTML = `
+            @media print {
+                body > *:not(#print-container) {
+                    display: none;
+                }
+                #print-container {
+                    display: block;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+
+        // 4. Use a timeout to ensure content is rendered before printing
+        setTimeout(() => {
+            const wasDark = document.documentElement.classList.contains('dark');
+            if (wasDark) {
+                document.documentElement.classList.remove('dark');
+            }
+
+            window.print();
+
+            // Clean up after printing
+            if (wasDark) {
+                document.documentElement.classList.add('dark');
+            }
+            
+            document.head.removeChild(style);
+            root.unmount();
+            document.body.removeChild(printContainer);
+        }, 100); // A 100ms delay is usually sufficient
     };
 
     const handleImport = (event) => {
@@ -226,14 +391,20 @@ export default function useAppData() {
 
     return {
         appData,
+        handleAddNotificationRule,
+        handleDeleteNotificationRule,
+        handleAIPredictionToggle,
         handleAddDrain,
         handleDeleteDrain,
         handleAddLog,
         handleEditLog,
         handleDeleteLog,
+        handleBulkDelete,
         handleAddRule,
         handleDeleteRule,
         handleRuleReorder,
+        handleAddResource,
+        handleDeleteResource,
         handleIndicatorModeChange,
         handleToggleTheme,
         handleExport,
@@ -252,6 +423,9 @@ export default function useAppData() {
         isDark,
         setIsDark,
         draggedItem,
-        dragOverItem
+        dragOverItem,
+        isChangelogOpen,
+        setIsChangelogOpen,
+        notifiedRules
     }
 }
