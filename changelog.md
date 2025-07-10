@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.7.0 (2025-07-10)
+* **Refactor**: Reworked threshold logic to be based on consecutive calendar days instead of a rolling hourly window.
+* **Feat**: Updated the Thresholds summary to display a detailed day-by-day breakdown of output.
+* **Fix**: Corrected a bug preventing new notification rules from being added due to a prop mismatch.
+
 ## v0.6.0 (2025-07-09)
 * **Feat**: Implemented time-based notification reminders for drain empties.
 * **Feat**: Added a 'Resources' tab to manage instructional videos and PDFs.
