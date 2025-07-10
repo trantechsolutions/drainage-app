@@ -4,9 +4,12 @@ import IndicatorLogic from '../components/settings/IndicatorLogic';
 import DataManagement from '../components/settings/DataManagement';
 import PrivacyInfo from '../components/settings/PrivacyInfo';
 import ModelSettings from '../components/settings/ModelSettings';
+import ManageNotifications from '../components/settings/ManageNotifications';
 
 const SettingsView = ({
     appData,
+    handleAddNotificationRule,
+    handleDeleteNotificationRule,
     handleAIPredictionToggle,
     handleAddDrain,
     handleDeleteDrain,
@@ -17,7 +20,8 @@ const SettingsView = ({
     dragOverItem,
     handleIndicatorModeChange,
     handleExport,
-    handleImport
+    handleImport,
+    onOpenChangelog
 }) => {
     return (
         <div className="page space-y-8">
@@ -38,6 +42,12 @@ const SettingsView = ({
                 indicatorMode={appData.settings.indicatorMode}
                 onModeChange={handleIndicatorModeChange}
             />
+            <ManageNotifications 
+                drains={appData.drains}
+                rules={appData.settings.notificationRules}
+                onAddRule={handleAddNotificationRule}
+                onDeleteRule={handleDeleteNotificationRule}
+            />
             <ModelSettings 
                 useAIPredictions={appData.settings.useAIPredictions}
                 onToggle={handleAIPredictionToggle}
@@ -46,7 +56,7 @@ const SettingsView = ({
                 onExport={handleExport}
                 onImport={handleImport}
             />
-            <PrivacyInfo />
+            <PrivacyInfo onOpenChangelog={onOpenChangelog} />
         </div>
     );
 };

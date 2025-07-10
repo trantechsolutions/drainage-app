@@ -52,7 +52,7 @@ const DashboardView = ({ appData, isDark }) => {
 
             {appData.settings.useAIPredictions && (
                 <section className="mb-8 p-4 bg-white dark:bg-gray-800 dark:text-white rounded-lg shadow-inner no-print">
-                    <h2 className="text-xl font-semibold text-center mb-4 text-gray-800 dark:text-gray-200">🔮 Output Forecast</h2>
+                    <h2 className="text-xl font-semibold text-center mb-4 text-gray-800 dark:text-gray-200">Output Forecast</h2>
                     <PredictionSummary logs={appData.logs} drains={appData.drains} />
                 </section>
             )}

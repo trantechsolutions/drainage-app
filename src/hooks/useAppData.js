@@ -13,6 +13,8 @@ export default function useAppData() {
     const [isDark, setIsDark] = useState(false);
     const draggedItem = useRef(null);
     const dragOverItem = useRef(null);
+    const [isChangelogOpen, setIsChangelogOpen] = useState(false);
+    const notifiedRules = useRef(new Set());
 
     const loadData = useCallback(() => {
         const data = localStorage.getItem('drainTrackerData');
@@ -23,6 +25,7 @@ export default function useAppData() {
             let settings = {
                 rules: [],
                 indicatorMode: 'total',
+                notificationRules: [],
                 useAIPredictions: false
             };
 
@@ -46,6 +49,7 @@ export default function useAppData() {
             setAppData({
                 drains: parsedData.drains || [],
                 logs: parsedData.logs || [],
+                resources: parsedData.resources || [],
                 settings: settings
             });
 
@@ -54,9 +58,11 @@ export default function useAppData() {
             setAppData({
                 drains: [],
                 logs: [],
+                resources: [],
                 settings: {
                     rules: [],
                     indicatorMode: 'total',
+                    notificationRules: [],
                     useAIPredictions: false
                 }
             });
@@ -66,6 +72,53 @@ export default function useAppData() {
     const saveData = useCallback((data) => {
         localStorage.setItem('drainTrackerData', JSON.stringify(data));
     }, []);
+
+    useEffect(() => {
+        const checkNotifications = () => {
+            if (!appData.settings.notificationRules || appData.logs.length === 0) return;
+
+            const now = new Date().getTime();
+            
+            appData.settings.notificationRules.forEach(rule => {
+                if (notifiedRules.current.has(rule.id)) return; // Already notified this session
+
+                // Find the most recent log that matches this rule's drainId
+                const relevantLogs = (rule.drainId === 'all')
+                    ? appData.logs
+                    : appData.logs.filter(log => log.drainId === rule.drainId);
+
+                if (relevantLogs.length === 0) return; // No logs for this drain, so nothing to check against.
+
+                const lastLog = relevantLogs.reduce((latest, log) => 
+                    new Date(log.date) > new Date(latest.date) ? log : latest
+                );
+
+                const lastLogTime = new Date(lastLog.date).getTime();
+                const hoursSinceLastLog = (now - lastLogTime) / (1000 * 60 * 60);
+
+                if (hoursSinceLastLog >= rule.hours) {
+                    const drainName = (rule.drainId === 'all')
+                        ? "A drain"
+                        : appData.drains.find(d => d.id === rule.drainId)?.name || 'a drain';
+                    
+                    const message = `Reminder: ${drainName} has not been logged in over ${rule.hours} hours. It may be time for a drain empty.`;
+                    
+                    // Trigger Notification
+                    setMessage(message); // In-app message
+                    if (Notification.permission === 'granted') {
+                        new Notification('Drain Tracker Reminder', { body: message });
+                    }
+
+                    notifiedRules.current.add(rule.id); // Mark as notified for this session
+                }
+            });
+        };
+
+        const intervalId = setInterval(checkNotifications, 5 * 60 * 1000); // Check every 5 minutes
+        return () => clearInterval(intervalId);
+
+    }, [appData.logs, appData.settings.notificationRules, appData.drains, setMessage]);
+
 
     useEffect(() => {
         loadData();
@@ -88,6 +141,23 @@ export default function useAppData() {
         document.getElementById('sun-icon')?.classList.toggle('hidden', isDark);
         document.getElementById('moon-icon')?.classList.toggle('hidden', !isDark);
     }, []);
+
+    const handleAddNotificationRule = (ruleData) => {
+        const newRule = { ...ruleData, id: generateId() };
+        const newRules = [...appData.settings.notificationRules, newRule];
+        const newData = { ...appData, settings: { ...appData.settings, notificationRules: newRules } };
+        setAppData(newData);
+        saveData(newData);
+        setMessage('Notification rule added.');
+    };
+
+    const handleDeleteNotificationRule = (id) => {
+        const newRules = appData.settings.notificationRules.filter(rule => rule.id !== id);
+        const newData = { ...appData, settings: { ...appData.settings, notificationRules: newRules } };
+        setAppData(newData);
+        saveData(newData);
+        setMessage('Notification rule deleted.');
+    };
 
     const handleAIPredictionToggle = (isEnabled) => {
         const newData = { ...appData, settings: { ...appData.settings, useAIPredictions: isEnabled } };
@@ -207,6 +277,24 @@ export default function useAppData() {
         saveData(newData);
     };
 
+    const handleAddResource = (resourceData) => {
+        const newResource = { ...resourceData, id: generateId() };
+        const newData = { ...appData, resources: [...appData.resources, newResource] };
+        setAppData(newData);
+        saveData(newData);
+        setMessage('Resource added successfully.');
+    };
+
+    const handleDeleteResource = (id) => {
+        if (window.confirm('Are you sure you want to delete this resource?')) {
+            const newResources = appData.resources.filter(r => r.id !== id);
+            const newData = { ...appData, resources: newResources };
+            setAppData(newData);
+            saveData(newData);
+            setMessage('Resource deleted.');
+        }
+    };
+
     const handleIndicatorModeChange = (mode) => {
         const newData = { ...appData, settings: { ...appData.settings, indicatorMode: mode } };
         setAppData(newData);
@@ -303,6 +391,8 @@ export default function useAppData() {
 
     return {
         appData,
+        handleAddNotificationRule,
+        handleDeleteNotificationRule,
         handleAIPredictionToggle,
         handleAddDrain,
         handleDeleteDrain,
@@ -313,6 +403,8 @@ export default function useAppData() {
         handleAddRule,
         handleDeleteRule,
         handleRuleReorder,
+        handleAddResource,
+        handleDeleteResource,
         handleIndicatorModeChange,
         handleToggleTheme,
         handleExport,
@@ -331,6 +423,9 @@ export default function useAppData() {
         isDark,
         setIsDark,
         draggedItem,
-        dragOverItem
+        dragOverItem,
+        isChangelogOpen,
+        setIsChangelogOpen,
+        notifiedRules
     }
 }

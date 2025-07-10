@@ -1,9 +1,20 @@
-const PrivacyInfo = () => {
+import { appVersion } from '../../helpers/changelogData';
+
+const PrivacyInfo = ({ onOpenChangelog }) => {
     return (
         <section className="p-6 no-print rounded-lg shadow-md bg-white dark:bg-gray-800">
-            <h2 className="pb-2 mb-4 text-2xl font-semibold border-b dark:border-gray-700 dark:text-white">
-                Privacy and Data Storage
-            </h2>
+            <div className="flex justify-between items-center pb-2 mb-4 border-b dark:border-gray-700">
+                <h2 className="text-2xl font-semibold dark:text-white">
+                    Privacy & Licensing
+                </h2>
+                <button
+                    onClick={onOpenChangelog}
+                    className="text-sm font-medium text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
+                    aria-label="Open Changelog"
+                >
+                    v{appVersion}
+                </button>
+            </div>
             <div className="space-y-4">
                 <div>
                     <h3 className="text-lg font-medium dark:text-white">Your Data Stays on Your Device</h3>
@@ -22,7 +33,7 @@ const PrivacyInfo = () => {
                     <p className="mt-1 text-gray-600 dark:text-gray-300">
                         This application is open-source software licensed under the MIT License. You are free to view the source code, make modifications, and distribute it. You can find the project repository
                         <a 
-                            href="https://github.com/trantechsolutions/drainage-app"
+                            href="https://github.com/trantechsolutions/drainage-app" // <-- Change this link
                             target="_blank" 
                             rel="noopener noreferrer"
                             className="text-blue-500 hover:underline ml-1"
