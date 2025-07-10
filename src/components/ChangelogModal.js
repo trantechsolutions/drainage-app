@@ -1,10 +1,22 @@
 // src/components/ChangelogModal.js
 
 import { Dialog, Transition } from '@headlessui/react';
-import { Fragment } from 'react';
-import { appVersion, changelog } from '../helpers/changelogData';
+import { Fragment, useState, useEffect } from 'react';
+import ReactMarkdown from 'react-markdown';
+import { appVersion } from '../helpers/changelogData';
 
 const ChangelogModal = ({ isOpen, onClose }) => {
+    const [markdown, setMarkdown] = useState('');
+
+    useEffect(() => {
+        // Fetch the markdown file's content when the modal opens
+        if (isOpen) {
+            fetch('/changelog.md')
+                .then(response => response.text())
+                .then(text => setMarkdown(text));
+        }
+    }, [isOpen]);
+
     return (
         <Transition appear show={isOpen} as={Fragment}>
             <Dialog as="div" className="relative z-50" onClose={onClose}>
@@ -31,28 +43,21 @@ const ChangelogModal = ({ isOpen, onClose }) => {
                             leaveFrom="opacity-100 scale-100"
                             leaveTo="opacity-0 scale-95"
                         >
-                            <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-2xl bg-white dark:bg-gray-800 p-6 text-left align-middle shadow-xl transition-all">
+                            <Dialog.Panel className="w-full max-w-2xl transform overflow-hidden rounded-2xl bg-white dark:bg-gray-800 p-6 text-left align-middle shadow-xl transition-all">
                                 <Dialog.Title
                                     as="h3"
                                     className="text-lg font-medium leading-6 text-gray-900 dark:text-gray-100"
                                 >
                                     Changelog - Version {appVersion}
                                 </Dialog.Title>
-                                <div className="mt-4 max-h-96 overflow-y-auto pr-2">
-                                    <div className="space-y-6">
-                                        {changelog.map((entry) => (
-                                            <div key={entry.version}>
-                                                <h4 className="font-semibold text-md text-gray-800 dark:text-gray-200">
-                                                    v{entry.version} <span className="text-sm font-normal text-gray-500 dark:text-gray-400">- {entry.date}</span>
-                                                </h4>
-                                                <ul className="mt-2 list-disc list-inside space-y-1 text-sm text-gray-600 dark:text-gray-300">
-                                                    {entry.changes.map((change, index) => (
-                                                        <li key={index}>{change}</li>
-                                                    ))}
-                                                </ul>
-                                            </div>
-                                        ))}
-                                    </div>
+                                
+                                {/* Render the markdown content here */}
+                                <div className="mt-4 max-h-96 overflow-y-auto pr-4">
+                                    <article className="prose dark:prose-invert">
+                                        <ReactMarkdown>
+                                            {markdown}
+                                        </ReactMarkdown>
+                                    </article>
                                 </div>
 
                                 <div className="mt-6">
