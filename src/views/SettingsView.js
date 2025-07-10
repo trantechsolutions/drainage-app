@@ -45,8 +45,8 @@ const SettingsView = ({
             <ManageNotifications 
                 drains={appData.drains}
                 rules={appData.settings.notificationRules}
-                onAddRule={handleAddNotificationRule}
-                onDeleteRule={handleDeleteNotificationRule}
+                onAddNotificationRule={handleAddNotificationRule}
+                onDeleteNotificationRule={handleDeleteNotificationRule}
             />
             <ModelSettings 
                 useAIPredictions={appData.settings.useAIPredictions}

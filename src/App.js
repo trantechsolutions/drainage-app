@@ -47,6 +47,8 @@ export default function App() {
         dragOverItem,
         isChangelogOpen,
         setIsChangelogOpen,
+        handleAddNotificationRule,
+        handleDeleteNotificationRule
     } = useAppData();
 
 
@@ -84,6 +86,8 @@ export default function App() {
                         handleImport={handleImport}
                         handleAIPredictionToggle={handleAIPredictionToggle}
                         onOpenChangelog={() => setIsChangelogOpen(true)}
+                        handleAddNotificationRule={handleAddNotificationRule}
+                        handleDeleteNotificationRule={handleDeleteNotificationRule}
                     />
                 )}
                 
@@ -101,7 +105,6 @@ export default function App() {
             <MessageModal message={message} onClose={() => setMessage('')} />
             <ChangelogModal isOpen={isChangelogOpen} onClose={() => setIsChangelogOpen(false)} />
 
-            {/* --- FLOATING ACTION BUTTONS --- */}
             <button 
                 onClick={() => setIsLogModalOpen(true)} 
                 className="fixed bottom-24 right-6 bg-blue-600 text-white p-4 rounded-full shadow-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900 no-print"

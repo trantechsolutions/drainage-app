@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Button, Input } from '@headlessui/react';
 
-const ManageNotifications = ({ drains, rules, onAddRule, onDeleteRule }) => {
+const ManageNotifications = ({ drains, rules, onAddNotificationRule, onDeleteNotificationRule }) => { // Corrected prop names
     const [hours, setHours] = useState('8');
     const [drainId, setDrainId] = useState('all');
     const [permission, setPermission] = useState(Notification.permission);
@@ -19,7 +19,8 @@ const ManageNotifications = ({ drains, rules, onAddRule, onDeleteRule }) => {
         e.preventDefault();
         const parsedHours = parseInt(hours, 10);
         if (!isNaN(parsedHours) && parsedHours > 0) {
-            onAddRule({ hours: parsedHours, drainId });
+            // Call the correctly named prop
+            onAddNotificationRule({ hours: parsedHours, drainId });
         }
     };
     
@@ -65,7 +66,8 @@ const ManageNotifications = ({ drains, rules, onAddRule, onDeleteRule }) => {
                     return (
                         <li key={rule.id} className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
                             <span>Remind if no new log for <span className="font-semibold">{drainName}</span> in <span className="font-semibold">{rule.hours} hours</span></span>
-                            <Button onClick={() => onDeleteRule(rule.id)} className="text-red-500 hover:text-red-700 font-semibold">Delete</Button>
+                            {/* Call the correctly named prop */}
+                            <Button onClick={() => onDeleteNotificationRule(rule.id)} className="text-red-500 hover:text-red-700 font-semibold">Delete</Button>
                         </li>
                     );
                 })}

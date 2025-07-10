@@ -32,18 +32,8 @@ export default function useAppData() {
             // 2. If settings exist in the loaded data, merge them.
             // This brings in any saved settings and preserves them.
             if (parsedData.settings) {
+                parsedData.settings.rules = parsedData.settings.rules || [];
                 settings = { ...settings, ...parsedData.settings };
-            }
-
-            // 3. Perform the specific migration for the old 'threshold' property.
-            // This checks the originally loaded data for the old format.
-            if (parsedData.settings && parsedData.settings.threshold && !parsedData.settings.rules) {
-                // Old format detected: create the 'rules' array.
-                settings.rules = [{
-                    id: generateId(),
-                    amount: parsedData.settings.threshold,
-                    hours: 24 // Sensible default
-                }];
             }
 
             setAppData({
@@ -80,14 +70,13 @@ export default function useAppData() {
             const now = new Date().getTime();
             
             appData.settings.notificationRules.forEach(rule => {
-                if (notifiedRules.current.has(rule.id)) return; // Already notified this session
+                if (notifiedRules.current.has(rule.id)) return;
 
-                // Find the most recent log that matches this rule's drainId
                 const relevantLogs = (rule.drainId === 'all')
                     ? appData.logs
                     : appData.logs.filter(log => log.drainId === rule.drainId);
 
-                if (relevantLogs.length === 0) return; // No logs for this drain, so nothing to check against.
+                if (relevantLogs.length === 0) return;
 
                 const lastLog = relevantLogs.reduce((latest, log) => 
                     new Date(log.date) > new Date(latest.date) ? log : latest
@@ -103,22 +92,20 @@ export default function useAppData() {
                     
                     const message = `Reminder: ${drainName} has not been logged in over ${rule.hours} hours. It may be time for a drain empty.`;
                     
-                    // Trigger Notification
-                    setMessage(message); // In-app message
+                    setMessage(message);
                     if (Notification.permission === 'granted') {
                         new Notification('Drain Tracker Reminder', { body: message });
                     }
 
-                    notifiedRules.current.add(rule.id); // Mark as notified for this session
+                    notifiedRules.current.add(rule.id);
                 }
             });
         };
 
-        const intervalId = setInterval(checkNotifications, 5 * 60 * 1000); // Check every 5 minutes
+        const intervalId = setInterval(checkNotifications, 5 * 60 * 1000);
         return () => clearInterval(intervalId);
 
     }, [appData.logs, appData.settings.notificationRules, appData.drains, setMessage]);
-
 
     useEffect(() => {
         loadData();
@@ -238,15 +225,10 @@ export default function useAppData() {
     const handleAddRule = (e) => {
         e.preventDefault();
         const amount = parseFloat(e.target.elements['rule-amount'].value);
-        const hours = parseInt(e.target.elements['rule-hours'].value, 10);
-        const interval = parseInt(e.target.elements['rule-interval'].value, 10);
+        const days = parseInt(e.target.elements['rule-days'].value, 10); // Changed from hours/interval to days
 
-        if (!isNaN(amount) && !isNaN(hours) && !isNaN(interval) && amount > 0 && hours > 0 && interval > 0) {
-            if (hours % interval !== 0) {
-                setMessage('Timeframe must be divisible by the interval.');
-                return;
-            }
-            const newRule = { id: generateId(), amount, hours, interval };
+        if (!isNaN(amount) && !isNaN(days) && amount > 0 && days > 0) {
+            const newRule = { id: generateId(), amount, days }; // New rule structure
             const newRules = [...appData.settings.rules, newRule];
             const newData = { ...appData, settings: { ...appData.settings, rules: newRules } };
             setAppData(newData);
