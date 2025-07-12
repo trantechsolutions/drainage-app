@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.9.0 (2025-07-11)
+* **Feat**: Integrated threshold rules into the prediction model to forecast when daily limits may be exceeded.
+* **Feat**: Added a "Removal Forecast" to predict the date when a drain will become eligible for removal based on its output trend.
+
 ## v0.8.0 (2025-07-10)
 * **Feat**: Enhanced the Thresholds summary to exclude the current day and provide a detailed breakdown of previous calendar days.
 * **Build**: Implemented a build script to automatically sync the version number from `changelog.md` to `package.json` and the application.

@@ -62,7 +62,10 @@ const ThresholdsSummary = ({ drains, logs, rules = [] }) => {
                         return (
                             <div key={drain.id} className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
                                 <div className="flex justify-between items-center mb-2">
-                                    <span className="font-semibold text-lg">{drain.name}</span>
+                                    <span className="font-semibold text-lg">
+                                        {drain.name}
+                                        {drain.isRemoved && <span className="ml-2 text-xs font-normal text-gray-400">(Removed)</span>}
+                                    </span>
                                     <div className="flex items-center gap-x-2">
                                         <span className="font-medium text-gray-700 dark:text-gray-300">
                                             {rule.days}-Day Total: {combinedTotal.toFixed(1)} cc

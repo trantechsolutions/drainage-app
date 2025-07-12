@@ -48,7 +48,7 @@ export default function App() {
         isChangelogOpen,
         setIsChangelogOpen,
         handleAddNotificationRule,
-        handleDeleteNotificationRule
+        handleDeleteNotificationRule,
     } = useAppData();
 
 

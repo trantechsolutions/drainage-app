@@ -182,7 +182,7 @@ export default function useAppData() {
         }
     };
 
-    const handleAddLog = (logData) => {
+    const handleAddLog = (logData) => {       
         const newLog = { ...logData, id: generateId() };
         const newData = { ...appData, logs: [...appData.logs, newLog] };
         setAppData(newData);
