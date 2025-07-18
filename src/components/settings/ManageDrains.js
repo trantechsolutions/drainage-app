@@ -1,6 +1,6 @@
 import { Button, Input } from '@headlessui/react';
 
-const ManageDrains = ({ drains, onAddDrain }) => {
+const ManageDrains = ({ drains, onAddDrain, onMarkDrainAsRemoved, onRestoreDrain }) => {
     return (
         <section className="bg-white dark:bg-gray-800 dark:text-white p-6 rounded-lg shadow-md no-print">
             <h2 className="text-2xl font-semibold mb-4 border-b dark:border-gray-700 pb-2">Manage Drains</h2>
@@ -18,6 +18,15 @@ const ManageDrains = ({ drains, onAddDrain }) => {
                             {drain.name}
                             {drain.isRemoved && <span className="ml-2 text-xs font-normal text-gray-400">(Removed)</span>}
                         </span>
+                        {drain.isRemoved ? (
+                            <Button onClick={() => onRestoreDrain(drain.id, drain.name)} className="text-green-500 hover:text-green-700 font-semibold">
+                                Restore
+                            </Button>
+                        ) : (
+                            <Button onClick={() => onMarkDrainAsRemoved(drain.id, drain.name)} className="text-red-500 hover:text-red-700 font-semibold">
+                                Mark as Removed
+                            </Button>
+                        )}
                     </div>
                 ))}
             </div>

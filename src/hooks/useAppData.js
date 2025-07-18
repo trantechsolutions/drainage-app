@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { createRoot } from 'react-dom/client'; // Corrected import for React 18
+import { createRoot } from 'react-dom/client';
 import { generateId } from '../helpers/utils';
-import CondensedPrintableSummary from '../components/CondensedPrintableSummary'; // Add this import
+import CondensedPrintableSummary from '../components/CondensedPrintableSummary';
 
 export default function useAppData() {
     const [appData, setAppData] = useState({ drains: [], logs: [], settings: { rules: [] } });
@@ -20,31 +20,23 @@ export default function useAppData() {
         const data = localStorage.getItem('drainTrackerData');
         if (data) {
             const parsedData = JSON.parse(data);
-
-            // 1. Start with a complete default settings object.
             let settings = {
                 rules: [],
                 indicatorMode: 'total',
                 notificationRules: [],
                 useAIPredictions: false
             };
-
-            // 2. If settings exist in the loaded data, merge them.
-            // This brings in any saved settings and preserves them.
             if (parsedData.settings) {
                 parsedData.settings.rules = parsedData.settings.rules || [];
                 settings = { ...settings, ...parsedData.settings };
             }
-
             setAppData({
                 drains: parsedData.drains || [],
                 logs: parsedData.logs || [],
                 resources: parsedData.resources || [],
                 settings: settings
             });
-
         } else {
-            // For brand new users, set the complete default state
             setAppData({
                 drains: [],
                 logs: [],
@@ -63,6 +55,7 @@ export default function useAppData() {
         localStorage.setItem('drainTrackerData', JSON.stringify(data));
     }, []);
 
+    // ... (other useEffects) ...
     useEffect(() => {
         const checkNotifications = () => {
             if (!appData.settings.notificationRules || appData.logs.length === 0) return;
@@ -131,7 +124,7 @@ export default function useAppData() {
 
     const handleAddNotificationRule = (ruleData) => {
         const newRule = { ...ruleData, id: generateId() };
-        const newRules = [...appData.settings.notificationRules, newRule];
+        const newRules = [...(appData.settings.notificationRules || []), newRule];
         const newData = { ...appData, settings: { ...appData.settings, notificationRules: newRules } };
         setAppData(newData);
         saveData(newData);
@@ -139,7 +132,7 @@ export default function useAppData() {
     };
 
     const handleDeleteNotificationRule = (id) => {
-        const newRules = appData.settings.notificationRules.filter(rule => rule.id !== id);
+        const newRules = (appData.settings.notificationRules || []).filter(rule => rule.id !== id);
         const newData = { ...appData, settings: { ...appData.settings, notificationRules: newRules } };
         setAppData(newData);
         saveData(newData);
@@ -162,7 +155,7 @@ export default function useAppData() {
         e.preventDefault();
         const drainName = e.target.elements['drain-name-input'].value.trim();
         if (drainName) {
-            const newDrain = { id: generateId(), name: drainName };
+            const newDrain = { id: generateId(), name: drainName, isRemoved: false };
             const newData = { ...appData, drains: [...appData.drains, newDrain] };
             setAppData(newData);
             saveData(newData);
@@ -171,18 +164,46 @@ export default function useAppData() {
         }
     };
 
+    const handleMarkDrainAsRemoved = (id, name) => {
+        if (window.confirm(`Are you sure you want to mark drain "${name}" as removed? You will no longer be able to add logs to it.`)) {
+            const newDrains = appData.drains.map(d => 
+                d.id === id ? { ...d, isRemoved: true } : d
+            );
+            const newData = { ...appData, drains: newDrains };
+            setAppData(newData);
+            saveData(newData);
+            setMessage(`Drain "${name}" marked as removed.`);
+        }
+    };
+
+    const handleRestoreDrain = (id, name) => {
+        const newDrains = appData.drains.map(d =>
+            d.id === id ? { ...d, isRemoved: false } : d
+        );
+        const newData = { ...appData, drains: newDrains };
+        setAppData(newData);
+        saveData(newData);
+        setMessage(`Drain "${name}" has been restored.`);
+    };
+
     const handleDeleteDrain = (id, name) => {
-        if (window.confirm(`Delete drain "${name}" and all its logs?`)) {
+        if (window.confirm(`Delete drain "${name}" and all its logs? This action cannot be undone.`)) {
             const newDrains = appData.drains.filter(d => d.id !== id);
             const newLogs = appData.logs.filter(l => l.drainId !== id);
             const newData = { ...appData, drains: newDrains, logs: newLogs };
             setAppData(newData);
             saveData(newData);
-            setMessage('Drain and logs deleted.');
+            setMessage('Drain and all associated logs permanently deleted.');
         }
     };
 
-    const handleAddLog = (logData) => {       
+    const handleAddLog = (logData) => {
+        const targetDrain = appData.drains.find(d => d.id === logData.drainId);
+        if (targetDrain && targetDrain.isRemoved) {
+            setMessage(`Cannot add log: Drain "${targetDrain.name}" has been removed.`);
+            setIsLogModalOpen(false);
+            return;
+        }
         const newLog = { ...logData, id: generateId() };
         const newData = { ...appData, logs: [...appData.logs, newLog] };
         setAppData(newData);
@@ -191,6 +212,7 @@ export default function useAppData() {
         setMessage('Log added successfully.');
     };
 
+    // ... (rest of the handler functions: handleEditLog, handleDeleteLog, handleBulkDelete, etc.)
     const handleEditLog = (updatedLog) => {
         const newLogs = appData.logs.map(log => log.id === updatedLog.id ? updatedLog : log);
         const newData = { ...appData, logs: newLogs };
@@ -211,7 +233,6 @@ export default function useAppData() {
         }
     };
 
-    // Add this function inside your useAppData.js file
     const handleBulkDelete = (logIds) => {
         if (window.confirm(`Are you sure you want to delete ${logIds.length} selected logs?`)) {
             const newLogs = appData.logs.filter(log => !logIds.includes(log.id));
@@ -225,10 +246,10 @@ export default function useAppData() {
     const handleAddRule = (e) => {
         e.preventDefault();
         const amount = parseFloat(e.target.elements['rule-amount'].value);
-        const days = parseInt(e.target.elements['rule-days'].value, 10); // Changed from hours/interval to days
+        const days = parseInt(e.target.elements['rule-days'].value, 10);
 
         if (!isNaN(amount) && !isNaN(days) && amount > 0 && days > 0) {
-            const newRule = { id: generateId(), amount, days }; // New rule structure
+            const newRule = { id: generateId(), amount, days };
             const newRules = [...appData.settings.rules, newRule];
             const newData = { ...appData, settings: { ...appData.settings, rules: newRules } };
             setAppData(newData);
@@ -261,7 +282,7 @@ export default function useAppData() {
 
     const handleAddResource = (resourceData) => {
         const newResource = { ...resourceData, id: generateId() };
-        const newData = { ...appData, resources: [...appData.resources, newResource] };
+        const newData = { ...appData, resources: [...(appData.resources || []), newResource] };
         setAppData(newData);
         saveData(newData);
         setMessage('Resource added successfully.');
@@ -269,11 +290,10 @@ export default function useAppData() {
 
     const handleDeleteResource = (id) => {
         if (window.confirm('Are you sure you want to delete this resource?')) {
-            const newResources = appData.resources.filter(r => r.id !== id);
+            const newResources = (appData.resources || []).filter(r => r.id !== id);
             const newData = { ...appData, resources: newResources };
             setAppData(newData);
             saveData(newData);
-            setMessage('Resource deleted.');
         }
     };
 
@@ -295,51 +315,30 @@ export default function useAppData() {
     };
 
     const handlePrint = () => {
-        // 1. Create a temporary container for the printable content
         const printContainer = document.createElement('div');
         printContainer.id = 'print-container';
         document.body.appendChild(printContainer);
 
-        // 2. Create a root and render the component using the imported createRoot function
-        const root = createRoot(printContainer); // Use the imported function
+        const root = createRoot(printContainer);
         root.render(
             <React.StrictMode>
                 <CondensedPrintableSummary drains={appData.drains} logs={appData.logs} />
             </React.StrictMode>
         );
 
-        // 3. Create a style element to hide the main app
         const style = document.createElement('style');
-        style.innerHTML = `
-            @media print {
-                body > *:not(#print-container) {
-                    display: none;
-                }
-                #print-container {
-                    display: block;
-                }
-            }
-        `;
+        style.innerHTML = `@media print { body > *:not(#print-container) { display: none; } #print-container { display: block; } }`;
         document.head.appendChild(style);
 
-        // 4. Use a timeout to ensure content is rendered before printing
         setTimeout(() => {
             const wasDark = document.documentElement.classList.contains('dark');
-            if (wasDark) {
-                document.documentElement.classList.remove('dark');
-            }
-
+            if (wasDark) document.documentElement.classList.remove('dark');
             window.print();
-
-            // Clean up after printing
-            if (wasDark) {
-                document.documentElement.classList.add('dark');
-            }
-            
+            if (wasDark) document.documentElement.classList.add('dark');
             document.head.removeChild(style);
             root.unmount();
             document.body.removeChild(printContainer);
-        }, 100); // A 100ms delay is usually sufficient
+        }, 100);
     };
 
     const handleImport = (event) => {
@@ -377,6 +376,8 @@ export default function useAppData() {
         handleDeleteNotificationRule,
         handleAIPredictionToggle,
         handleAddDrain,
+        handleMarkDrainAsRemoved,
+        handleRestoreDrain,
         handleDeleteDrain,
         handleAddLog,
         handleEditLog,

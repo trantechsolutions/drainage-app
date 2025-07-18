@@ -16,7 +16,8 @@ export default function App() {
     const {
         appData,
         handleAddDrain,
-        handleDeleteDrain,
+        handleMarkDrainAsRemoved,
+        handleRestoreDrain,
         handleAddLog,
         handleEditLog,
         handleDeleteLog,
@@ -49,7 +50,7 @@ export default function App() {
         setIsChangelogOpen,
         handleAddNotificationRule,
         handleDeleteNotificationRule,
-    } = useAppData();
+    } = useAppData(); // Make sure handleMarkDrainAsRemoved is exported from useAppData
 
 
     return (
@@ -75,7 +76,8 @@ export default function App() {
                     <SettingsView 
                         appData={appData}
                         handleAddDrain={handleAddDrain}
-                        handleDeleteDrain={handleDeleteDrain}
+                        handleMarkDrainAsRemoved={handleMarkDrainAsRemoved}
+                        handleRestoreDrain={handleRestoreDrain}
                         handleAddRule={handleAddRule}
                         handleDeleteRule={handleDeleteRule}
                         handleRuleReorder={handleRuleReorder}

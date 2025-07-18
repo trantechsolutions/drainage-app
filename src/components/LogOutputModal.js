@@ -5,16 +5,19 @@ import { getLocalISOString } from '../helpers/utils';
 const LogOutputModal = ({ isOpen, onClose, drains, onAddLog }) => {
     const [formData, setFormData] = useState({ drainId: '', amount: '', date: '', notes: '' });
 
+    // Filter out removed drains for the dropdown
+    const activeDrains = drains.filter(drain => !drain.isRemoved);
+
     useEffect(() => {
         if (isOpen) {
             setFormData({
-                drainId: drains.length > 0 ? drains[0].id : '',
+                drainId: activeDrains.length > 0 ? activeDrains[0].id : '',
                 amount: '',
                 date: getLocalISOString(),
                 notes: ''
             });
         }
-    }, [isOpen, drains]);
+    }, [isOpen, drains]); // Keep original `drains` dependency
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -45,7 +48,8 @@ const LogOutputModal = ({ isOpen, onClose, drains, onAddLog }) => {
                                     <div>
                                         <label htmlFor="drainId" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Select Drain:</label>
                                         <Select name="drainId" id="drainId" value={formData.drainId} onChange={handleChange} className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700" required>
-                                            {[...drains].sort((a,b) => a.name.localeCompare(b.name)).map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                                            {/* --- THIS LINE IS UPDATED --- */}
+                                            {activeDrains.sort((a,b) => a.name.localeCompare(b.name)).map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                                         </Select>
                                     </div>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

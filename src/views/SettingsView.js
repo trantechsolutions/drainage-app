@@ -12,7 +12,8 @@ const SettingsView = ({
     handleDeleteNotificationRule,
     handleAIPredictionToggle,
     handleAddDrain,
-    handleDeleteDrain,
+    handleMarkDrainAsRemoved,
+    handleRestoreDrain,
     handleAddRule,
     handleDeleteRule,
     handleRuleReorder,
@@ -28,7 +29,8 @@ const SettingsView = ({
             <ManageDrains 
                 drains={appData.drains}
                 onAddDrain={handleAddDrain}
-                onDeleteDrain={handleDeleteDrain}
+                onMarkDrainAsRemoved={handleMarkDrainAsRemoved}
+                onRestoreDrain={handleRestoreDrain}
             />
             <ManageThresholds 
                 rules={appData.settings.rules}

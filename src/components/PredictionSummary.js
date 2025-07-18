@@ -16,6 +16,12 @@ const PredictionSummary = ({ logs, drains, rules = [] }) => {
             const NUM_DAYS_TO_ANALYZE = 7;
 
             const predictionPromises = drains.map(async (drain) => {
+                // --- THIS LOGIC IS UPDATED ---
+                // If a drain is removed, skip prediction and return a status object.
+                if (drain.isRemoved) {
+                    return { id: drain.id, name: drain.name, isRemoved: true };
+                }
+
                 const dailyTotals = Array(NUM_DAYS_TO_ANALYZE).fill(0);
                 const today = new Date();
                 today.setHours(0, 0, 0, 0);
@@ -59,7 +65,11 @@ const PredictionSummary = ({ logs, drains, rules = [] }) => {
             {predictions.map(pred => (
                 <div key={pred.id} className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
                     <h4 className="font-semibold text-gray-800 dark:text-gray-200">{pred.name}</h4>
-                    {pred.hasEnoughData ? (
+                    
+                    {/* --- THIS LOGIC IS UPDATED --- */}
+                    {pred.isRemoved ? (
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Drain is no longer actively used.</p>
+                    ) : pred.hasEnoughData ? (
                         <>
                             <div className="flex justify-between items-center mt-1">
                                 <div>
@@ -107,15 +117,13 @@ const PredictionSummary = ({ logs, drains, rules = [] }) => {
                                     )}
                                 </div>
                                 
-                                {/* --- NEW REMOVAL FORECAST LOGIC --- */}
                                 <div>
                                     <h5 className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Removal Forecast</h5>
                                     {rules.length > 0 ? (
                                         rules.map(rule => {
                                             let removalForecastText = '';
-                                            // Prediction is only relevant if trend is decreasing and output is currently above the threshold
                                             if (pred.slope < -0.1 && pred.nextValue > rule.amount) {
-                                                const daysToMeet = (rule.amount - pred.nextValue) / pred.slope; // A negative divided by a negative
+                                                const daysToMeet = (rule.amount - pred.nextValue) / pred.slope;
                                                 const finalDayOffset = daysToMeet + (rule.days - 1);
                                                 
                                                 const tomorrow = new Date();
