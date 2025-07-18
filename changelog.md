@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.10.0 (2025-07-18)
+* **Feat**: Added the ability to mark a drain as "removed," preserving its history while preventing new data entry.
+* **Feat**: Implemented a "Restore" function to make removed drains active again.
+
 ## v0.9.0 (2025-07-11)
 * **Feat**: Integrated threshold rules into the prediction model to forecast when daily limits may be exceeded.
 * **Feat**: Added a "Removal Forecast" to predict the date when a drain will become eligible for removal based on its output trend.
